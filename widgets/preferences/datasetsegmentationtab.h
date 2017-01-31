@@ -55,6 +55,12 @@ class DatasetAndSegmentationTab : public QWidget
     QGroupBox segmentationGroup{tr("Segmentation")};
     QGridLayout segmentationLayout;
     QLabel segmentationOverlayLabel{"Overlay opacity"};
+
+    //rutuja
+    QLabel segmentationBorderLabel{"Border opacity"};
+    QSpinBox segmentationBorderSpinBox;
+    QSlider segmentationBorderSlider{Qt::Horizontal};
+
     QSpinBox segmentationOverlaySpinBox;
     QSlider segmentationOverlaySlider{Qt::Horizontal};
     // segmentation volume

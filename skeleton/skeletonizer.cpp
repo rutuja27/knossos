@@ -21,7 +21,9 @@
  */
 
 #include "skeletonizer.h"
-
+#include <iostream>
+#include <H5Cpp.h>
+#include <hdf5.h>
 #include "file_io.h"
 #include "functions.h"
 #include "mesh/mesh.h"
@@ -42,7 +44,7 @@
 #include <QXmlStreamAttributes>
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
-
+#include <iostream>
 #include <cstring>
 #include <queue>
 #include <type_traits>
@@ -1911,9 +1913,11 @@ void Skeletonizer::saveMesh(QIODevice & file, const treeListElement & tree) {
 }
 
 void Skeletonizer::addMeshToTree(boost::optional<decltype(treeListElement::treeID)> treeID, QVector<float> & verts, QVector<float> & normals, QVector<unsigned int> & indices, QVector<std::uint8_t> & colors, int draw_mode, bool swap_xy) {
+
     auto * tree = treeID ? findTreeByTreeID(treeID.get()) : nullptr;
     if (tree == nullptr) {
         tree = &addTree(treeID);
+
     }
 
     std::vector<int> vertex_face_count(verts.size() / 3);
@@ -1985,7 +1989,12 @@ void Skeletonizer::addMeshToTree(boost::optional<decltype(treeListElement::treeI
     Session::singleton().unsavedChanges = true;
 }
 
+
+
+
+
 void Skeletonizer::deleteMeshOfTree(std::uint64_t tree_id) {
+
     auto * tree = findTreeByTreeID(tree_id);
     if (tree != nullptr) {
         tree->mesh.reset(new Mesh(tree));

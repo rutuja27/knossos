@@ -27,9 +27,8 @@
 #include "session.h"
 #include "skeleton/skeletonizer.h"
 #include "viewer.h"
-
+#include "widgets/mainWindow.h"
 #include <QTextStream>
-
 #include <algorithm>
 #include <fstream>
 #include <sstream>
@@ -401,8 +400,12 @@ void Segmentation::selectObject(Object & object) {
     object.selected = true;
     for (auto & subobj : object.subobjects) {
         ++subobj.get().selectedObjectsCount;
+        //rutuja
+        ++subobj.get().activeObjectsCount;
     }
     selectedObjectIndices.emplace_back(object.index);
+    //rutuja - add the selected subobjects to the active list
+    activeIndices.emplace_back(object.index);
     emit changedRowSelection(object.index);
 }
 
@@ -419,8 +422,12 @@ void Segmentation::unselectObject(Object & object) {
     object.selected = false;
     for (auto & subobj : object.subobjects) {
         --subobj.get().selectedObjectsCount;
+        //rutuja
+        --subobj.get().activeObjectsCount;
     }
     selectedObjectIndices.erase(object.index);
+    //rutuja - delete the selected objects from the list
+    activeIndices.erase(object.index);
     emit changedRowSelection(object.index);
 }
 
@@ -577,6 +584,7 @@ void Segmentation::mergelistLoad(QIODevice & file) {
         uint64_t initialVolume;
         QString category;
         QString comment;
+        std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color;
 
         bool valid0 = (lineStream >> objId) && (lineStream >> todo) && (lineStream >> immutable) && (lineStream >> initialVolume);
         bool valid1 = (coordColorLineStream >> location.x) && (coordColorLineStream >> location.y) && (coordColorLineStream >> location.z);
@@ -589,7 +597,17 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             uint64_t subObjId;
             while (lineStream >> subObjId) {
                 newSubObject(obj, subObjId);
+                if(state->hdf5_found){
+                color = colorObjectFromIndex(objId);
+                supervoxel info;
+                info.seed = objId;
+                info.objid = obj.id;
+                info.color = color;
+                info.show = true;
+                state->viewer->supervoxel_info.push_back(info);}
+
             }
+            selectObject(obj);
             std::sort(std::begin(obj.subobjects), std::end(obj.subobjects));
             changeCategory(obj, category);
             if (customColorValid) {
@@ -643,21 +661,38 @@ void Segmentation::startJobMode() {
 
 void Segmentation::deleteSelectedObjects() {
     const auto blockState = blockSignals(true);
-    while (!selectedObjectIndices.empty()) {
-        removeObject(objects[selectedObjectIndices.back()]);
+    while (!activeIndices.empty()) { // changed from selectedObjectindices to activeIndices-rutuja
+        Object Object = objects[activeIndices.back()];
+        deleted_id = Object.id;
+        removeObject(Object);
+        //removeObject(objects[activeIndices.back()]);
     }
+
+    //added this code to add new active object after the previous is deleted - rutuja
+    if(!objects.empty())
+    {
+      auto & obj = objects.back();
+      activeIndices.emplace_back(obj.index);
+    }
+     Segmentation::flag_delete = true;
+
     blockSignals(blockState);
     emit resetData();
 }
 
 void Segmentation::mergeSelectedObjects() {
-    while (selectedObjectIndices.size() > 1) {
-        auto & firstObj = objects[selectedObjectIndices.front()];//front is the merge origin
-        auto & secondObj = objects[selectedObjectIndices.back()];
+
+    //while (selectedObjectIndices.size() > 1) {
+      while (activeIndices.size() > 1){
+        //auto & firstObj = objects[selectedObjectIndices.front()];//front is the merge origin
+        //auto & secondObj = objects[selectedObjectIndices.back()];
+          auto & firstObj = objects[activeIndices.front()];//front is the merge origin
+          auto & secondObj = objects[activeIndices.back()];
         //objects are no longer selected when they got merged
         auto flat_deselect = [this](Object & object){
             object.selected = false;
             selectedObjectIndices.erase(object.index);
+            activeIndices.erase(object.index);
             emit changedRowSelection(object.index);//deselect
         };
         //4 (im)mutability possibilities
@@ -671,6 +706,7 @@ void Segmentation::mergeSelectedObjects() {
 
             flat_deselect(objects[firstIndex]);//firstObj got invalidated
             selectedObjectIndices.emplace_front(newIndex);//move new index to front, so it gets the new merge origin
+            activeIndices.emplace_front(newIndex);
             emit changedRowSelection(firstIndex);
             emit changedRowSelection(secondIndex);
         } else if (secondObj.immutable) {
@@ -733,4 +769,113 @@ void Segmentation::restoreDefaultColorForSelectedObjects() {
         }
         emit resetData();
     }
+}
+
+//rutuja -- count the num,ber of current active objects
+std::size_t Segmentation::activeObjectsCount() const {
+    return activeIndices.size();
+}
+
+//rutuja-completely remove an object
+void Segmentation::remObject(uint64_t subobjectid, Segmentation::Object & sub)
+{
+    std::vector<std::reference_wrapper<SubObject>>tmp;
+    for (auto & elem : sub.subobjects) {
+        auto & subobject = elem.get();
+        if(subobject.id == subobjectid){
+          //unselectObject(sub);
+          decltype(sub.subobjects)j;
+          deleted_cell_id = subobjectid;
+          //flag_delete_cell = true;
+          tmp.push_back(subobject);
+          std::set_difference(std::begin(sub.subobjects), std::end(sub.subobjects), std::begin(tmp), std::end(tmp), std::back_inserter(j));
+          subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), sub.index), std::end(subobject.objects));
+          subobjects.erase(subobject.id);
+          std::swap(sub.subobjects,j);
+          emit changedRow(sub.index);
+
+
+        }
+
+    }
+
+}
+
+// rutuja - clear only the subobjects in the active selection
+void Segmentation::clearActiveSelection(){
+
+
+     while(!activeIndices.empty())
+    {
+       activeIndices.clear();
+    }
+
+
+}
+
+//rutuja - delete a single subobject from an object in the 3d mesh
+void Segmentation::cell_delete(){
+    auto & segment = Segmentation::singleton();
+    auto & skeleton = Skeletonizer::singleton();
+    //segment.flag_delete_cell = false;
+    std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
+    while(i != state->viewer->supervoxel_info.end()){
+         if(i->seed == segment.deleted_cell_id){
+           uint64_t objId = i->objid;
+           i = state->viewer->supervoxel_info.erase(i);
+
+           break;
+         }
+        i++;
+    }
+    skeleton.deleteMeshOfTree(segment.deleted_cell_id);
+}
+
+//rutuja- selectively turn on/off branches of meshes in 3D window
+void Segmentation::branch_onoff(Segmentation::Object & obj) {
+    auto & skeleton = Skeletonizer::singleton();
+    int size = state->viewer->supervoxel_info.size();
+
+    std::vector<supervoxel>::iterator it = state->viewer->supervoxel_info.begin();
+    int k = 0;
+    while(k < size ){
+        if(it->objid == obj.id){
+
+             it->show = obj.on_off;
+             if(it->show)
+             {
+                state->viewer->hdf5_read(*it);
+             }
+             else
+             {
+                 skeleton.deleteMeshOfTree(it->seed);
+             }
+
+        }
+
+       it++;
+       k++;
+    }
+
+}
+
+//rutuja- Delete an entire tree from the 3D mesh
+void Segmentation::branch_delete(){
+
+     auto & segment = Segmentation::singleton();
+     segment.flag_delete = false;
+     std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
+     while(i != state->viewer->supervoxel_info.end()){
+          if(i->objid == segment.deleted_id){
+              i = state->viewer->supervoxel_info.erase(i);
+
+          }
+          else{
+              i++;
+          }
+
+
+     }
+
+
 }

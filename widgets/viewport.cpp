@@ -21,7 +21,7 @@
  */
 
 #include "viewport.h"
-
+#include <iostream>
 #include "functions.h"
 #include "GuiConstants.h"
 #include "profiler.h"
@@ -710,6 +710,7 @@ void Viewport3D::paintGL() {
 }
 
 void ViewportOrtho::paintGL() {
+
     glClear(GL_DEPTH_BUFFER_BIT);
     if (state->gpuSlicer && state->viewer->gpuRendering) {
         renderViewportFast();

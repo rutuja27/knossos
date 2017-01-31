@@ -359,12 +359,14 @@ class ViewportOrtho : public ViewportBase {
 
 protected:
     virtual void initializeGL() override;
-    virtual void paintGL() override;
+
 public:
     explicit ViewportOrtho(QWidget *parent, ViewportType viewportType);
     ~ViewportOrtho();
     void resetTexture();
     static bool showNodeComments;
+    //rutuja
+    virtual void paintGL() override;
 
     void sendCursorPosition();
     Coordinate getMouseCoordinate();

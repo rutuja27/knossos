@@ -128,6 +128,8 @@ int main(int argc, char *argv[]) {
     Scripting scripts;
     state.mainWindow->loadSettings();// load settings after viewer and window are accessible through state and viewer
     state.mainWindow->widgetContainer.datasetLoadWidget.loadDataset();// load last used dataset or show
+
+
     viewer.run();
 #ifdef NDEBUG
     splash.finish(state.mainWindow);

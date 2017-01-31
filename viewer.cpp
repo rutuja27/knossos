@@ -21,7 +21,9 @@
  */
 
 #include "viewer.h"
-
+#include <iostream>
+#include <H5Cpp.h>
+#include <hdf5.h>
 #include "file_io.h"
 #include "functions.h"
 #include "segmentation/segmentation.h"
@@ -362,12 +364,67 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                 uint64_t subobjectId = *reinterpret_cast<uint64_t*>(datacube);
 
                 auto color = (subobjectIdCache == subobjectId) ? colorCache : seg.colorObjectFromSubobjectId(subobjectId);
+
                 reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
                 reinterpret_cast<uint8_t*>(slice)[1] = std::get<1>(color);
                 reinterpret_cast<uint8_t*>(slice)[2] = std::get<2>(color);
                 reinterpret_cast<uint8_t*>(slice)[3] = std::get<3>(color);
 
                 const bool selected = (subobjectIdCache == subobjectId) ? selectedCache : seg.isSubObjectIdSelected(subobjectId);
+                //rutuja - selective branch on-off
+                if(selected)
+                {
+                   std::unordered_map<uint64_t, Segmentation::SubObject>::iterator it = seg.subobjects.find(subobjectId);
+                   const auto & sub = it->second;
+                   uint64_t id = seg.largestObjectContainingSubobject(sub);
+                   //object of the selected current subobjectid
+                   const auto & obj = seg.objects.at(id);
+                   //curent active object
+                   const auto & objid = seg.objects.back();
+
+                   if(!obj.on_off)
+                   {
+                       reinterpret_cast<uint8_t*>(slice)[0] = 0;
+                       reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                       reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                       reinterpret_cast<uint8_t*>(slice)[3] = 0;
+
+                   }
+
+                   if(obj.id == objid.id)
+                   {
+                       reinterpret_cast<uint8_t*>(slice)[0] = 255;
+                       reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                       reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                       reinterpret_cast<uint8_t*>(slice)[3] = 100;
+
+                   }
+                }
+                //rutuja - color the border red and the only show selected objects in color
+                if(!selected)
+                {
+
+                    if(subobjectId == 0)
+                    {
+                        reinterpret_cast<uint8_t*>(slice)[0] = 255;
+                        reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                        reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                        reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha_border;
+
+                    }
+                    else
+                    {
+                        reinterpret_cast<uint8_t*>(slice)[0] = 0;
+                        reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                        reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                        reinterpret_cast<uint8_t*>(slice)[3] = 0;
+
+                    }
+
+
+                }
+
+
                 const bool isPastFirstRow = counter >= min;
                 const bool isBeforeLastRow = counter < max;
                 const bool isNotFirstColumn = counter % state->cubeEdgeLength != 0;
@@ -1269,4 +1326,125 @@ QColor Viewer::getNodeColor(const nodeListElement & node) const {
     }
 
     return color;
+}
+
+int Viewer::hdf5_read(supervoxel& x)
+{
+    auto & skeleton = Skeletonizer::singleton();
+    hid_t file_id, dataspace_vertices, dataspace_faces,group_id,dataset_vertices, dataset_faces,
+            memspace_vertices, memspace_faces,attr_id, attr_scale, attr_scaleinfo;
+    herr_t status;
+    hsize_t dims_vertices[2];
+    hsize_t dims_faces[2];
+
+    //Open the HDF5 file and group
+
+    try{
+        file_id = H5Fopen(state->hdf5.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+    }
+    catch (const std::overflow_error& e) {
+        // this executes if f() throws std::overflow_error (same type rule)
+
+        std::cout << e.what();
+        return 0;
+    } catch (const std::runtime_error& e) {
+        // this executes if f() throws std::underflow_error (base class rule)
+
+        std::cout << e.what();
+        return 0;
+    } catch (const std::exception& e) {
+        // this executes if f() throws std::logic_error (base class rule)
+
+        std::cout << e.what();
+        return 0;
+    } catch (...) {
+        // this executes if f() throws std::string or int or any other unrelated type
+
+        return 0;
+    }
+
+    group_id = H5Gopen(file_id, "/meshes",H5P_DEFAULT);
+
+    int number_of_zeros = 8;
+    int buf[3];
+    int number[1];
+    std::string label_0 = "00000000/faces";
+    auto treeID = x.seed;
+
+    QVector<float> verts;
+    QVector<unsigned int> indices;
+    QVector<float> normals;
+    QVector<std::uint8_t> colors;
+    // meshing structures
+
+   //for (auto& x: supervoxel_info){
+
+      //auto & x = supervoxel_info.back();
+      if(x.show){
+
+         std::ostringstream oss;
+         oss << x.seed;
+
+
+      //Convert the seed to %08d pattern style
+         std::string ver_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/vertices";
+         std::string face_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/faces";
+
+      // Obtain the points and polys for the seed from the dataset
+         dataset_vertices = H5Dopen(group_id, ver_data.c_str(), H5P_DEFAULT);
+         dataset_faces = H5Dopen(group_id, face_data.c_str(),  H5P_DEFAULT);
+         attr_scale = H5Dopen(group_id, label_0.c_str(),H5P_DEFAULT);
+
+      // Obtain attribute of dataset
+         attr_id = H5Aopen(dataset_vertices,"bounds_beg",H5Dget_access_plist(dataset_vertices));
+         attr_scaleinfo = H5Aopen(attr_scale,"nlabels",H5Dget_access_plist(attr_scale));
+
+         status = H5Aread(attr_id,H5T_NATIVE_INT,buf);
+         status = H5Aread(attr_scaleinfo,H5T_NATIVE_INT,number);
+
+      // Obtain the dimensions of the points and the polys
+         dataspace_vertices = H5Dget_space(dataset_vertices);
+         dataspace_faces = H5Dget_space(dataset_faces);
+
+         int rank_vertices = H5Sget_simple_extent_ndims(dataspace_vertices);
+         int rank_faces = H5Sget_simple_extent_ndims(dataspace_faces);
+         status = H5Sget_simple_extent_dims(dataspace_vertices, dims_vertices, NULL);
+
+         status = H5Sget_simple_extent_dims(dataspace_faces, dims_faces, NULL);
+         memspace_vertices = H5Screate_simple(rank_vertices,dims_vertices,NULL);
+         memspace_faces = H5Screate_simple(rank_faces,dims_faces,NULL);
+
+      // Allocate memory for the reading the points and the polygons
+         int *data_vertices = (int*)std::malloc(sizeof(int)*dims_vertices[1]*dims_vertices[0]);
+
+         uint32_t *data_faces = (uint32_t*)std::malloc(sizeof(uint32_t)*dims_faces[1]*dims_faces[0]);
+
+      //Read the points and the polygons of the vtkPolyData
+         status = H5Dread(dataset_vertices, H5T_NATIVE_INT, memspace_vertices, dataspace_vertices,
+                     H5P_DEFAULT, data_vertices);
+
+         status = H5Dread(dataset_faces, H5T_NATIVE_INT, memspace_faces, dataspace_faces,
+                     H5P_DEFAULT, data_faces);
+
+         for(uint h = 0; h < dims_vertices[0];h++){
+
+           verts.push_back(data_vertices[h*dims_vertices[1]]+ buf[0]);
+           verts.push_back(data_vertices[h*dims_vertices[1]+1] + buf[1]);
+           verts.push_back(data_vertices[h*dims_vertices[1]+2] + buf[2]);
+
+         }
+
+         for(uint h = 0; h < dims_faces[0];h++){
+
+           indices.push_back(data_faces[h*dims_faces[1]]);
+           indices.push_back(data_faces[h*dims_faces[1]+1]);
+           indices.push_back(data_faces[h*dims_faces[1]+2]);
+           colors.push_back(std::get<0>(x.color));
+           colors.push_back(std::get<1>(x.color));
+           colors.push_back(std::get<2>(x.color));
+           colors.push_back(255);
+         }
+          skeleton.addMeshToTree(treeID,verts,normals,indices,colors,GL_TRIANGLES);
+       }
+    // }
 }

@@ -40,6 +40,10 @@ DatasetAndSegmentationTab::DatasetAndSegmentationTab(QWidget *parent) : QWidget(
     segmentationOverlaySpinBox.setRange(0, 255);
     segmentationOverlaySlider.setRange(0, 255);
 
+    //rutuja
+    segmentationBorderSpinBox.setRange(0, 255);
+    segmentationBorderSlider.setRange(0, 255);
+
     volumeColorButton.setStyleSheet("background-color : " + Segmentation::singleton().volume_background_color.name() + ";");
     volumeOpaquenessSpinBox.setRange(0, 255);
     volumeOpaquenessSlider.setRange(0, 255);
@@ -55,6 +59,10 @@ DatasetAndSegmentationTab::DatasetAndSegmentationTab(QWidget *parent) : QWidget(
     // segmentation
     row = 0;
     segmentationLayout.addWidget(&segmentationOverlayLabel, row, 0); segmentationLayout.addWidget(&segmentationOverlaySlider, row, 1); segmentationLayout.addWidget(&segmentationOverlaySpinBox, row++, 2);
+
+    //rutuja
+    segmentationLayout.addWidget(&segmentationBorderLabel, row, 0); segmentationLayout.addWidget(&segmentationBorderSlider, row , 1); segmentationLayout.addWidget(&segmentationBorderSpinBox, row++, 2);
+
     segmentationLayout.addWidget(&volumeRenderCheckBox, row++, 0, 1, 2);
     segmentationLayout.addWidget(&volumeOpaquenessLabel, row, 0); segmentationLayout.addWidget(&volumeOpaquenessSlider, row, 1); segmentationLayout.addWidget(&volumeOpaquenessSpinBox, row++, 2);
     segmentationLayout.addWidget(&volumeColorLabel, row, 0); segmentationLayout.addWidget(&volumeColorButton, row++, 1, Qt::AlignLeft);
@@ -104,11 +112,26 @@ DatasetAndSegmentationTab::DatasetAndSegmentationTab(QWidget *parent) : QWidget(
         Segmentation::singleton().alpha = value;
         state->viewer->oc_reslice_notify_visible();
     });
+
+    //rutuja
+    QObject::connect(&segmentationBorderSlider, &QSlider::valueChanged, [this](int value){
+        segmentationBorderSpinBox.setValue(value);
+        Segmentation::singleton().alpha_border = value;
+        state->viewer->oc_reslice_notify_visible();
+    });
+
     QObject::connect(&segmentationOverlaySpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this](int value){
         segmentationOverlaySlider.setValue(value);
         Segmentation::singleton().alpha = value;
         state->viewer->oc_reslice_notify_visible();
     });
+    //rutuja
+    QObject::connect(&segmentationBorderSpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged), [this](int value){
+        segmentationBorderSlider.setValue(value);
+        Segmentation::singleton().alpha_border = value;
+        state->viewer->oc_reslice_notify_visible();
+    });
+
     QObject::connect(&volumeRenderCheckBox, &QCheckBox::clicked, [this](bool checked){
         Segmentation::singleton().volume_render_toggle = checked;
         volumeOpaquenessLabel.setEnabled(checked);
@@ -139,6 +162,9 @@ DatasetAndSegmentationTab::DatasetAndSegmentationTab(QWidget *parent) : QWidget(
     });
 
     QObject::connect(&state->viewer->mainWindow, &MainWindow::overlayOpacityChanged, [this]() { segmentationOverlaySlider.setValue(Segmentation::singleton().alpha); });
+    //rutuja
+    QObject::connect(&state->viewer->mainWindow, &MainWindow::overlayOpacityChanged, [this]() { segmentationBorderSlider.setValue(Segmentation::singleton().alpha_border); });
+
 }
 
 void DatasetAndSegmentationTab::useOwnDatasetColorsButtonClicked(QString path) {
@@ -168,6 +194,9 @@ void DatasetAndSegmentationTab::saveSettings() const {
     settings.setValue(BIAS, biasSpinBox.value());
     settings.setValue(RANGE_DELTA, rangeDeltaSpinBox.value());
     settings.setValue(SEGMENTATION_OVERLAY_ALPHA, segmentationOverlaySlider.value());
+    //rutuja
+    settings.setValue(SEGMENTATION_BORDER_ALPHA, segmentationBorderSlider.value());
+
     settings.setValue(DATASET_LUT_FILE, lutFilePath);
     settings.setValue(DATASET_LUT_FILE_USED, useOwnDatasetColorsCheckBox.isChecked());
     settings.setValue(RENDER_VOLUME, volumeRenderCheckBox.isChecked());
@@ -190,6 +219,11 @@ void DatasetAndSegmentationTab::loadSettings() {
     rangeDeltaSpinBox.valueChanged(rangeDeltaSpinBox.value());
     segmentationOverlaySlider.setValue(settings.value(SEGMENTATION_OVERLAY_ALPHA, 37).toInt());
     segmentationOverlaySlider.valueChanged(segmentationOverlaySlider.value());
+
+    //rutuja
+    segmentationBorderSlider.setValue(settings.value(SEGMENTATION_BORDER_ALPHA, 37).toInt());
+    segmentationBorderSlider.valueChanged(segmentationBorderSlider.value());
+
     volumeRenderCheckBox.setChecked(settings.value(RENDER_VOLUME, false).toBool());
     volumeRenderCheckBox.clicked(volumeRenderCheckBox.isChecked());
     volumeOpaquenessSpinBox.setValue(settings.value(VOLUME_ALPHA, 37).toInt());

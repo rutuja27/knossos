@@ -56,7 +56,8 @@ class SegmentationObjectModel : public QAbstractListModel {
 Q_OBJECT
     friend class SegmentationView;//selection
 protected:
-    const std::vector<QString> header{""/*color*/, "Object ID", "Lock", "Category", "Comment", "#", "Subobject IDs"};
+    //rutuja
+    const std::vector<QString> header{"on-off","color", "Object ID", "Lock", "Category", "Comment", "#", "Subobject IDs"};
     const std::size_t MAX_SHOWN_SUBOBJECTS = 10;
 public:
     virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override;
@@ -110,6 +111,9 @@ Q_OBJECT
     QLineEdit commentFilter;
     QCheckBox regExCheckbox{"Regex"};
 
+    //rutuja
+    QPushButton objectCreateButton{"Create new object"};
+
     SegmentationObjectModel objectModel;
     QSortFilterProxyModel objectProxyModelCategory;
     QSortFilterProxyModel objectProxyModelComment;
@@ -119,8 +123,12 @@ Q_OBJECT
 
     UserOrientableSplitter splitter;
     QWidget touchedLayoutWidget;
-    QVBoxLayout touchedTableLayout;
+    QHBoxLayout touchedTableLayout;
     QLabel touchedObjectsLabel{"<strong>Objects containing subobject</strong>"};
+
+    //rutuja
+    QLabel ObjectsLabel{"objectsTable"};
+
     QTreeView touchedObjsTable;
     QTreeView objectsTable;
     QMenu touchedObjsContextMenu{&touchedObjsTable};
@@ -136,6 +144,10 @@ Q_OBJECT
 
     bool objectSelectionProtection = false;
     bool touchedObjectSelectionProtection = false;
+
+    //rutuja
+    QWidget objectLayoutWidget;
+    QHBoxLayout objectTableLayout;
 public:
     explicit SegmentationView(QWidget * const parent = nullptr);
     void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected);

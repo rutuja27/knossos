@@ -64,6 +64,8 @@ find_package(${pythonqt} REQUIRED)
 find_package(Snappy REQUIRED)
 find_package(Qt5 5.1 REQUIRED COMPONENTS Concurrent Core Gui Help Network Widgets)
 find_package(QuaZip 0.6.2 REQUIRED)
+find_package(szip REQUIRED)
+find_package(hdf5 1.8 REQUIRED)
 
 if(NOT AUTOGEN)
     qt_wrap_cpp(${PROJECT_NAME} SRC_LIST ${headers} ${headers2})
@@ -119,13 +121,15 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT DEPLOY)
-    message(STATUS "using gold linker")
-    set(LINUXLINKER -fuse-ld=gold)
+ message(STATUS "using gold linker")
+    set(LINUXLINKER -fuse-ld=gold>)
 endif()
 
 target_link_libraries(${PROJECT_NAME}
     ${Boost_LIBRARIES}
     ${OPENGL_LIBRARIES}
+    ${SZIP_LIBRARIES}
+    ${HDF5_LIBRARIES}
     #configs add includes and other settings automatically
     Qt5::Concurrent
     Qt5::Core
@@ -136,7 +140,7 @@ target_link_libraries(${PROJECT_NAME}
     ${pythonqt}
     QuaZip::QuaZip
     Snappy::Snappy
-    ${LINUXLINKER}
+    ${LINUXLINKER}    
     $<$<PLATFORM_ID:Windows>:-Wl,--dynamicbase># use ASLR, required by the »Windows security features test« for »Windows Desktop App Certification«
 )
 find_program(LSBRELEASE lsb_release)

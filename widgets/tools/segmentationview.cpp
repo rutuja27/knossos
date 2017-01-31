@@ -93,18 +93,21 @@ QVariant SegmentationObjectModel::headerData(int section, Qt::Orientation orient
 }
 
 QVariant SegmentationObjectModel::objectGet(const Segmentation::Object &obj, const QModelIndex & index, int role) const {
-    if (index.column() == 0 && (role == Qt::BackgroundRole || role == Qt::DecorationRole)) {
+    //rutuja - extra column added for the branch on-off functionality
+    if(index.column() == 0 && role == Qt::CheckStateRole){
+        return (obj.on_off ? Qt::Checked : Qt::Unchecked);
+    } else if (index.column() == 1 && (role == Qt::BackgroundRole || role == Qt::DecorationRole)) {
         const auto color = Segmentation::singleton().colorObjectFromIndex(obj.index);
         return QColor(std::get<0>(color), std::get<1>(color), std::get<2>(color));
-    } else if (index.column() == 2 && role == Qt::CheckStateRole) {
+    } else if (index.column() == 3 && role == Qt::CheckStateRole) {
         return (obj.immutable ? Qt::Checked : Qt::Unchecked);
     } else if (role == Qt::DisplayRole || role == Qt::EditRole) {
         switch (index.column()) {
-        case 1: return static_cast<quint64>(obj.id);
-        case 3: return obj.category;
-        case 4: return obj.comment;
-        case 5: return static_cast<quint64>(obj.subobjects.size());
-        case 6: {
+        case 2: return static_cast<quint64>(obj.id);
+        case 4: return obj.category;
+        case 5: return obj.comment;
+        case 6: return static_cast<quint64>(obj.subobjects.size());
+        case 7: {
             QString output;
             const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
             auto subobjectIt = std::begin(obj.subobjects);
@@ -130,7 +133,7 @@ QVariant SegmentationObjectModel::data(const QModelIndex & index, int role) cons
 }
 
 bool SegmentationObjectModel::objectSet(Segmentation::Object & obj, const QModelIndex & index, const QVariant & value, int role) {
-    if (index.column() == 2 && role == Qt::CheckStateRole) {
+    if (index.column() == 3 && role == Qt::CheckStateRole) {
         QMessageBox prompt;
         prompt.setWindowFlags(Qt::WindowStaysOnTopHint);
         prompt.setIcon(QMessageBox::Question);
@@ -145,11 +148,25 @@ bool SegmentationObjectModel::objectSet(Segmentation::Object & obj, const QModel
         }
     } else if (role == Qt::DisplayRole || role == Qt::EditRole) {
         switch (index.column()) {
-        case 3: Segmentation::singleton().changeCategory(obj, value.toString()); break;
-        case 4: Segmentation::singleton().changeComment(obj, value.toString()); break;
+        case 4: Segmentation::singleton().changeCategory(obj, value.toString()); break;
+        case 5: Segmentation::singleton().changeComment(obj, value.toString()); break;
         default:
             return false;
         }
+    }else if (index.column() == 0 && role == Qt::CheckStateRole){//rutuja
+
+        if(value == Qt::Checked)
+        {
+          obj.on_off = Qt::Checked;
+        }
+        else{
+
+          obj.on_off =Qt::Unchecked;
+        }
+        auto & seg = Segmentation::singleton();
+        seg.branch_onoff(obj);
+
+
     }
     return true;
 }
@@ -165,9 +182,11 @@ bool SegmentationObjectModel::setData(const QModelIndex & index, const QVariant 
 Qt::ItemFlags SegmentationObjectModel::flags(const QModelIndex & index) const {
     Qt::ItemFlags flags = QAbstractItemModel::flags(index) | Qt::ItemNeverHasChildren;//not editable
     switch(index.column()) {
+    case 0 : flags | Qt::ItemIsUserCheckable;//rutuja
     case 2:
-        return flags | Qt::ItemIsUserCheckable;
+
     case 3:
+        return flags | Qt::ItemIsUserCheckable;
     case 4:
         return flags | Qt::ItemIsEditable;
     }
@@ -281,13 +300,16 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
     setupTable(touchedObjsTable, touchedObjectModel, touchedObjSortSectionIndex);
     touchedLayoutWidget.hide();
+    //rutuja
+    setupTable(objectsTable, objectProxyModelComment, touchedObjSortSectionIndex);
+    objectLayoutWidget.hide();
 
     //proxy model chaining, so we can filter twice
     objectProxyModelCategory.setSourceModel(&objectModel);
     objectProxyModelComment.setSourceModel(&objectProxyModelCategory);
     objectProxyModelCategory.setFilterKeyColumn(3);
     objectProxyModelComment.setFilterKeyColumn(4);
-    setupTable(objectsTable, objectProxyModelComment, objSortSectionIndex);
+
 
     filterLayout.addWidget(&categoryFilter);
     filterLayout.addWidget(&commentFilter);
@@ -296,14 +318,29 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     bottomHLayout.addWidget(&objectCountLabel);
     bottomHLayout.addWidget(&subobjectCountLabel);
     bottomHLayout.addWidget(&subobjectHoveredLabel);
+    //rutuja
+    bottomHLayout.addWidget(&objectCreateButton, 0, Qt::AlignRight);
 
     touchedTableLayout.addWidget(&touchedObjectsLabel);
     touchedTableLayout.addWidget(&touchedObjsTable);
     touchedLayoutWidget.setLayout(&touchedTableLayout);
-    splitter.setOrientation(Qt::Vertical);
-    splitter.addWidget(&objectsTable);
+
+    //rutuja-add active object window
+    objectTableLayout.addWidget(&ObjectsLabel);
+    objectTableLayout.addWidget(&objectsTable);
+    objectLayoutWidget.setLayout(&objectTableLayout);
+
+    splitter.setOrientation(Qt::Horizontal);
+    splitter.addWidget(&touchedObjsTable);
     splitter.addWidget(&touchedLayoutWidget);
     splitter.setStretchFactor(0, 5);
+
+    //rutuja -set the active object window
+    splitter.setOrientation(Qt::Vertical);
+    splitter.addWidget(&objectsTable);
+    splitter.addWidget(&objectLayoutWidget);
+    splitter.setStretchFactor(0, 5);
+
     layout.addLayout(&filterLayout);
     layout.addWidget(&splitter);
     layout.addLayout(&bottomHLayout);
@@ -484,7 +521,11 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     QObject::connect(objectsTable.selectionModel(), &QItemSelectionModel::selectionChanged, this, &SegmentationView::selectionChanged);
     QObject::connect(touchedObjsTable.selectionModel(), &QItemSelectionModel::selectionChanged, this, &SegmentationView::touchedObjSelectionChanged);
     QObject::connect(&showOnlySelectedChck, &QCheckBox::clicked, &Segmentation::singleton(), &Segmentation::setRenderOnlySelectedObjs);
+    //rutuja
+    QObject::connect(&objectCreateButton, &QPushButton::clicked, [](){Segmentation::singleton().createandselect=true;});
 
+    touchedObjectModel.recreate();
+    objectModel.recreate();
     touchedObjectModel.recreate();
     objectModel.recreate();
 
@@ -493,7 +534,47 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
 template<typename Func>
 void commitSelection(const QItemSelection & selected, const QItemSelection & deselected, Func proxy) {
-    for (const auto & index : deselected.indexes()) {
+
+    //rutuja - to disable deselecting of objects from the viewer that have already been selected.
+    //Adding the ability to selectively
+    auto & seg = Segmentation::singleton();
+    Segmentation::singleton().activeIndices.clear();
+
+    if(selected.indexes().size() != 0)
+    {
+
+        for (const auto & index : selected.indexes()) {
+
+            if (index.column() == 2) {
+
+                Segmentation::singleton().activeIndices.emplace_back(proxy(index.row()));
+            }
+       }
+    } else {
+
+        size_t size = seg.selectedObjectIndices.size();
+
+        std::vector<uint64_t> temp(size);
+        std::vector<uint64_t>::iterator it;
+        for(uint64_t  o = 0;o < size; o++)
+        {
+          temp.at(o) = o;
+        }
+
+        for (const auto & index : deselected.indexes()) {
+
+           it = std::find(temp.begin(),temp.end(),proxy(index.row()));
+           if(it != temp.end())
+           {
+               temp.erase(it);
+           }
+
+        }
+        seg.activeIndices.emplace_back(temp.front());
+    }
+
+    //old code - commented by rutuja
+    /*for (const auto & index : deselected.indexes()) {
         if (index.column() == 1) {//only evaluate id cell
             Segmentation::singleton().unselectObject(proxy(index.row()));
         }
@@ -502,7 +583,7 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
         if (index.column() == 1) {//only evaluate id cell
             Segmentation::singleton().selectObject(proxy(index.row()));
         }
-    }
+    }*/
 }
 
 void commitSelection(const QItemSelection & selected, const QItemSelection & deselected) {

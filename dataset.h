@@ -59,6 +59,7 @@ struct Dataset {
     bool overlay{false};
     QString experimentname{};
     QUrl url;
+    QString hdf5;
 };
 
 #endif//DATASET_H

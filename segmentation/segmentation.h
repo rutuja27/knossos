@@ -41,6 +41,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+class Mesh;
 
 class Segmentation : public QObject {
 Q_OBJECT
@@ -53,7 +54,8 @@ Q_OBJECT
     friend class CategoryModel;
     friend class SegmentationView;
     friend class SegmentationProxy;
-
+//making class public by rutuja
+public:
     class Object;
     class SubObject {
         friend void connectedComponent(const Coordinate & seed);
@@ -63,8 +65,12 @@ Q_OBJECT
         static uint64_t highestId;
         std::vector<uint64_t> objects;
         std::size_t selectedObjectsCount = 0;
+        //rutuja - i dont where this should go so putting it near selectedObjectsCount
+        //as this the functionality we want to emulate
+        std::size_t activeObjectsCount = 0;
     public:
         const uint64_t id;
+
         explicit SubObject(const uint64_t & id) : id(id) {
             highestId = std::max(id, highestId);
             objects.reserve(10);//improves merging performance by a factor of 3
@@ -106,6 +112,9 @@ Q_OBJECT
         QString comment;
         bool selected = false;
 
+        //rutuja//
+        bool on_off = true;
+
         explicit Object(std::vector<std::reference_wrapper<SubObject>> initialVolumes, const Coordinate & location, const uint64_t id = ++highestId, const bool & todo = false, const bool & immutable = false);
         explicit Object(Object & first, Object & second);
         bool operator==(const Object & other) const;
@@ -144,7 +153,7 @@ Q_OBJECT
     void unmergeObject(Object & object, Object & other, const Coordinate & position);
 
     Object & objectFromSubobject(Segmentation::SubObject & subobject, const Coordinate & position);
-public:
+
     class Job {
     public:
         bool active = false;
@@ -165,6 +174,24 @@ public:
     static bool enabled;
     bool renderOnlySelectedObjs{false};
     uint8_t alpha;
+    //**rutuja**//
+    uint8_t alpha_border;
+    bool flag_delete = false;
+    uint64_t deleted_id = 0;
+    bool createandselect = false;
+     bool load_annotation = false;
+    //bool flag_delete_cell = false;
+    uint64_t deleted_cell_id =0;
+    hash_list<uint64_t> activeIndices;
+
+    //rutuja
+    void branch_onoff(Segmentation::Object & obj);
+    void branch_delete();
+    void cell_delete();
+    void clearActiveSelection();
+    void remObject(uint64_t subobjectid, Segmentation::Object & sub);
+    std::size_t activeObjectsCount() const;
+
     brush_subject brush;
     // for mode in which edges are online highlighted for objects when selected and being hovered over by mouse
     bool hoverVersion{false};

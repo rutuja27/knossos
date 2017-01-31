@@ -96,6 +96,7 @@ const QString DATASET_LUT_FILE_USED = "dataset_lut_file_used";
 const QString BIAS = "bias";
 const QString RANGE_DELTA = "range_delta";
 const QString SEGMENTATION_OVERLAY_ALPHA = "segmentation_overlay_alpha";
+const QString SEGMENTATION_BORDER_ALPHA = "segmentation_border_alpha";
 
 // Preferences Viewports Tab
 const QString SHOW_SCALEBAR = "show_scalebar";

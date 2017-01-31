@@ -182,6 +182,10 @@ Dataset Dataset::fromLegacyConf(const QUrl & configUrl, QString config) {
             //discarding ftpFileTimeout parameter
         } else if (token == "compression_ratio") {
             info.compressionRatio = tokenList.at(1).toInt();
+        } else if (token == "hdf5"){//rutuja
+                    token = tokenList.at(1);
+                    info.hdf5 = token.remove('\"');
+
         } else {
             qDebug() << "Skipping unknown parameter" << token;
         }
@@ -219,6 +223,11 @@ void Dataset::applyToState() const {
     state->scale = scale;
     state->name = experimentname;
     state->cubeEdgeLength = cubeEdgeLength;
+
+    //rutuja- convert Qstring to std::string for easy enabling of reading hdf5
+    std::string stdString = hdf5.toStdString();
+    state->hdf5 = stdString;
+
     state->compressionRatio = compressionRatio;
     Segmentation::enabled = overlay;
 

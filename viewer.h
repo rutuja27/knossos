@@ -153,6 +153,14 @@ struct ViewerState {
     } lineVertBuffer, pointVertBuffer;
 };
 
+class supervoxel{
+public:
+    uint64_t seed;
+    uint64_t objid;
+    std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color;
+    bool show;
+
+};
 /**
  *
  *  This file contains functions that are called by the managing,
@@ -200,6 +208,9 @@ public:
     int gpucubeedge = 64;
     bool gpuRendering = true;
 
+    //rutuja
+    std::vector<supervoxel> supervoxel_info;
+
     ViewportOrtho *viewportXY, *viewportXZ, *viewportZY;
     ViewportArb *viewportArb;
     void zoom(const float factor);
@@ -213,6 +224,8 @@ public:
     void loadNodeLUT(const QString & path);
     void loadTreeLUT(const QString & path = ":/resources/color_palette/default.json");
     QColor getNodeColor(const nodeListElement & node) const;
+    //RUTUJA
+    int  hdf5_read(supervoxel& x);
 signals:
     void enabledArbVP(const bool on);
     void changedDefaultVPSizeAndPos();
@@ -253,6 +266,8 @@ public slots:
     float lowestScreenPxXPerDataPx(const bool ofCurrentMag = true);
     uint calcMag(const float screenPxXPerDataPx);
     void setMagnificationLock(const bool locked);
+
 };
 
 #endif // VIEWER_H
+

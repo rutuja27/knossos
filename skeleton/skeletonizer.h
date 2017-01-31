@@ -42,6 +42,7 @@
 class nodeListElement;
 class segmentListElement;
 
+
 enum skelvpOrientation {
     SKELVP_XY_VIEW, SKELVP_XZ_VIEW, SKELVP_ZY_VIEW, SKELVP_R90, SKELVP_R180, SKELVP_RESET, SKELVP_CUSTOM
 };
@@ -199,6 +200,7 @@ public:
     void notifyChanged(treeListElement & tree);
     void notifyChanged(nodeListElement & node);
 
+
     SkeletonState skeletonState;
     Skeletonizer();
     static Skeletonizer & singleton() {
@@ -290,6 +292,7 @@ public:
     void saveMesh(QIODevice & file, const treeListElement & tree);
     void addMeshToTree(boost::optional<decltype(treeListElement::treeID)> treeID, QVector<float> & verts, QVector<float> & normals, QVector<unsigned int> & indices, QVector<std::uint8_t> & colors, int draw_mode = 0, bool swap_xy = false);
     void deleteMeshOfTree(std::uint64_t tree_id);
+
 signals:
     void guiModeLoaded();
     void branchPoppedSignal();
@@ -312,3 +315,5 @@ signals:
 };
 
 #endif // SKELETONIZER_H
+
+
