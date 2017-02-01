@@ -1364,7 +1364,7 @@ int Viewer::hdf5_read(supervoxel& x)
     }
 
     group_id = H5Gopen(file_id, "/meshes",H5P_DEFAULT);
-
+    std::cout << group_id << std::endl;
     int number_of_zeros = 8;
     int buf[3];
     int number[1];

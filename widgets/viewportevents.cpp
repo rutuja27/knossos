@@ -21,7 +21,7 @@
  */
 
 #include "widgets/viewport.h"
-
+#include <iostream>
 #include "functions.h"
 #include "gui_wrapper.h"
 #include "scriptengine/scripting.h"
@@ -48,7 +48,8 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
     const auto brushCenter = getCoordinateFromOrthogonalClick(event->x(), event->y(), vp);
     const auto subobjectIds = readVoxels(brushCenter, seg.brush.value());
     for (const auto subobjectPair : subobjectIds) {
-        if (seg.selectedObjectsCount() == 1) {
+
+        if (seg.activeObjectsCount() == 1) {//rutuja
             const auto soid = subobjectPair.first;
             const auto pos = subobjectPair.second;
             auto & subobject = seg.subobjectFromId(soid, pos);
@@ -77,9 +78,27 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         seg.selectObject(objectToMergeId);//select largest object
                     }
                 }
-                if (seg.selectedObjectsCount() >= 2) {
+                if (seg.activeObjectsCount() >= 2) {//rutuja
                     seg.mergeSelectedObjects();
                 }
+
+                //rutuja - mesh for merging task
+                if(state->hdf5_found)
+                {
+                        auto objIndex = seg.largestObjectContainingSubobject(subobject);
+                        std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color;
+                        auto obj = seg.objects.at(objIndex);
+                        color = {255,0,0,255};
+
+                        supervoxel info;
+                        info.seed = soid;
+                        info.objid = obj.id;
+                        info.color = color;
+                        info.show = true;
+                        state->viewer->supervoxel_info.push_back(info);
+                        state->viewer->hdf5_read(info);
+                }
+
             }
             seg.touchObjects(soid);
         }
@@ -379,27 +398,76 @@ void Viewport3D::handleMouseReleaseLeft(const QMouseEvent *event) {
 
 void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
     auto & segmentation = Segmentation::singleton();
+    //sauto & skeleton = Skeletonizer::singleton();
     if (Session::singleton().annotationMode.testFlag(AnnotationMode::ObjectSelection) && mouseEventAtValidDatasetPosition(event)) { // in task mode the object should not be switched
         if (event->pos() == mouseDown) {// mouse click
             const auto clickPos = getCoordinateFromOrthogonalClick(event->x(), event->y(), *this);
             const auto subobjectId = readVoxel(clickPos);
-            if (subobjectId != segmentation.getBackgroundId()) {// don’t select the unsegmented area as object
+            if (subobjectId != segmentation.getBackgroundId() && segmentation.createandselect) {// don’t select the unsegmented area as object
                 auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
                 auto objIndex = segmentation.largestObjectContainingSubobject(subobject);
+                segmentation.createandselect = false;
+
                 if (!event->modifiers().testFlag(Qt::ControlModifier)) {
-                    segmentation.clearObjectSelection();
+                    segmentation.clearActiveSelection();//rutuja
                     segmentation.selectObject(objIndex);
-                } else if (segmentation.isSelected(objIndex)) {// unselect if selected
+                    auto object = segmentation.objects.at(objIndex);
+
+                    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color;
+                    color = {255,0,0,255};
+                    std::cout << "in" << std::endl;
+                    if(state->hdf5_found){
+                    std::cout << "out " << std::endl;
+                    supervoxel info;
+                    info.seed = subobjectId;
+                    info.objid = object.id;
+                    info.color = color;
+                    info.show = true;
+                    state->viewer->supervoxel_info.push_back(info);
+                    state->viewer->hdf5_read(info);
+                    // to color all the selected supervoxels by their respective colors once they are not the current active selection
+                    int k = state->viewer->supervoxel_info.size()-1;
+                    if(k > 0){
+                      std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
+                      while(i != state->viewer->supervoxel_info.end() && i->objid != object.id)
+                      {
+                            color = segmentation.colorObjectFromSubobjectId(i->seed);
+                            i->color = color;
+                            state->viewer->hdf5_read(*i);
+                            i++;
+                      }
+                    }
+                  }
+               }
+               //rutuja - removed this from original code
+               /* } else if (segmentation.isSelected(objIndex)) {// unselect if selected
                     segmentation.unselectObject(objIndex);
                 } else { // select largest object
                     segmentation.selectObject(objIndex);
-                }
+                }*/
                 if (segmentation.isSelected(subobject)) {//touch other objects containing this subobject
                     segmentation.touchObjects(subobjectId);
                 } else {
                     segmentation.untouchObjects();
                 }
             }
+            //rutuja - to delete a subobject from object
+            if (subobjectId != 0 && event->modifiers().testFlag(Qt::ControlModifier)) {// delete a subobject
+
+                auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
+                auto objIndex = segmentation.largestObjectContainingSubobject(subobject);
+                if (segmentation.isSelected(objIndex)) {// unselect if selected
+
+                    auto & object = segmentation.objects.at(objIndex);
+                    segmentation.unselectObject(object);
+                    segmentation.remObject(subobjectId,object);
+                    segmentation.selectObject(object);
+                    if(state->hdf5_found){
+                      segmentation.cell_delete();
+                    }
+                }
+
+              }
         }
     }
     state->viewer->userMoveClear();//finish dataset drag
@@ -542,7 +610,7 @@ void ViewportBase::handleKeyPress(const QKeyEvent *event) {
     } else if(event->key() == Qt::Key_Delete) {
         if(ctrl) {
             if(state->skeletonState->activeTree) {
-                Skeletonizer::singleton().delTree(state->skeletonState->activeTree->treeID);
+               // Skeletonizer::singleton().delTree(state->skeletonState->activeTree->treeID);
             }
         } else if(state->skeletonState->selectedNodes.size() > 0) {
             bool deleteNodes = true;

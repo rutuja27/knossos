@@ -21,7 +21,7 @@
  */
 
 #include "loader.h"
-
+#include <iostream>
 #include "functions.h"
 #include "network.h"
 #include "segmentation/segmentation.h"
@@ -231,6 +231,22 @@ void Loader::Worker::allocateOverlayCubes() {
     for(size_t i = 0; i < state->cubeSetBytes * OBJID_BYTES; i += state->cubeBytes * OBJID_BYTES) {
         OcSetChunk.emplace_back(state->cubeBytes * OBJID_BYTES, 0);//zero init chunk of chars
         freeOcSlots.emplace_back(OcSetChunk.back().data());//append newest element
+    }
+   //rutuja - checking if hdf5 found
+    std::cout << state->hdf5 << std::endl;
+    if(state->hdf5.empty()){
+        QMessageBox prompt;
+        prompt.setWindowFlags(Qt::WindowStaysOnTopHint);
+        prompt.setWindowTitle("Failure to Load Hdf5");
+        prompt.setText("Meshing option available but hdf5 misssing");
+        prompt.addButton("Ok", QMessageBox::YesRole);
+        prompt.addButton("Cancel", QMessageBox::NoRole);
+        prompt.exec();
+        state->hdf5_found = false;
+
+    }
+    else{
+        state->hdf5_found = true;
     }
 }
 
