@@ -233,7 +233,7 @@ void Loader::Worker::allocateOverlayCubes() {
         freeOcSlots.emplace_back(OcSetChunk.back().data());//append newest element
     }
    //rutuja - checking if hdf5 found
-    std::cout << state->hdf5 << std::endl;
+
     if(state->hdf5.empty()){
         QMessageBox prompt;
         prompt.setWindowFlags(Qt::WindowStaysOnTopHint);

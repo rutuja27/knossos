@@ -97,6 +97,7 @@ void annotationFileLoad(const QString & filename, const QString & treeCmtOnMulti
                 nameWithoutExtension.chop(4);
                 bool validId = false;
                 auto treeId = boost::make_optional<std::uint64_t>(nameWithoutExtension.toULongLong(&validId));
+
                 if (!validId) {
                     qDebug() << "Filename not of the form <tree id>.ply, so loading as new tree:" << fileName;
                     treeId = boost::none;
@@ -104,12 +105,14 @@ void annotationFileLoad(const QString & filename, const QString & treeCmtOnMulti
                     const auto iter = treeMap.find(treeId.get());
                     if (iter != std::end(treeMap)) {
                         treeId = iter->second.get().treeID;
+
                     } else {
                         qDebug() << "Tree not found for this mesh, loading as new tree:" << fileName;
                         treeId = boost::none;
                     }
                 }
                 Skeletonizer::singleton().loadMesh(file, treeId, fileName);
+
             }
         }
         state->viewer->loader_notify();

@@ -21,7 +21,7 @@
  */
 
 #include "widgets/viewport.h"
-
+#include <iostream>
 #include "profiler.h"
 #include "segmentation/cubeloader.h"
 #include "segmentation/segmentation.h"
@@ -1207,12 +1207,18 @@ void Viewport3D::renderSkeletonVP(const RenderOptions &options) {
     // load model view matrix that stores rotation state!
     glLoadMatrixf(state->skeletonState->skeletonVpModelView);
 
+    // rutuja - added to rotate the 3D view always with respect to the current position
+    state->viewerState->rotationCenter = RotationCenter::CurrentPosition;
+
     auto rotateMe = [this, scaledBoundary](auto x, auto y){
+
         floatCoordinate rotationCenter{scaledBoundary / 2};
+
         if (state->viewerState->rotationCenter == RotationCenter::ActiveNode && state->skeletonState->activeNode != nullptr) {
             rotationCenter = state->scale.componentMul(state->skeletonState->activeNode->position);
         } else if (state->viewerState->rotationCenter == RotationCenter::CurrentPosition) {
             rotationCenter = state->scale.componentMul(state->viewerState->currentPosition);
+
         }
         // calculate inverted rotation
         const auto rotation = QMatrix4x4{state->skeletonState->rotationState};
@@ -1246,7 +1252,6 @@ void Viewport3D::renderSkeletonVP(const RenderOptions &options) {
     const auto zy = state->skeletonState->definedSkeletonVpView == SKELVP_ZY_VIEW;
     if (xy || xz || zy) {
         state->skeletonState->definedSkeletonVpView = SKELVP_CUSTOM;
-
         QMatrix4x4{}.copyDataTo(state->skeletonState->rotationState);
         QMatrix4x4{}.copyDataTo(state->skeletonState->skeletonVpModelView);
         const auto previousRotation = state->viewerState->rotationCenter;
@@ -1272,7 +1277,6 @@ void Viewport3D::renderSkeletonVP(const RenderOptions &options) {
         state->skeletonState->translateY = 0;
         zoomFactor = 1;
         emit updateZoomWidget();
-
         QMatrix4x4{}.copyDataTo(state->skeletonState->rotationState);
         QMatrix4x4{}.copyDataTo(state->skeletonState->skeletonVpModelView);
         const auto previousRotationCenter = state->viewerState->rotationCenter;

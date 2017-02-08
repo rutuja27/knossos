@@ -68,6 +68,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                             seg.selectObject(objectToMergeId);
                         }
                         seg.unmergeSelectedObjects(pos);
+
                     }
                 }
             } else { // object is not selected, so user wants to merge
@@ -86,10 +87,8 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                 if(state->hdf5_found)
                 {
                         auto objIndex = seg.largestObjectContainingSubobject(subobject);
-                        std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color;
+                        std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>color = seg.get_active_color();
                         auto obj = seg.objects.at(objIndex);
-                        color = {255,0,0,255};
-
                         supervoxel info;
                         info.seed = soid;
                         info.objid = obj.id;
@@ -97,6 +96,8 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         info.show = true;
                         state->viewer->supervoxel_info.push_back(info);
                         state->viewer->hdf5_read(info);
+
+
                 }
 
             }
@@ -412,35 +413,22 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     segmentation.clearActiveSelection();//rutuja
                     segmentation.selectObject(objIndex);
                     auto object = segmentation.objects.at(objIndex);
+                    std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color = segmentation.get_active_color();
 
-                    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color;
-                    color = {255,0,0,255};
-                    std::cout << "in" << std::endl;
                     if(state->hdf5_found){
-                    std::cout << "out " << std::endl;
-                    supervoxel info;
-                    info.seed = subobjectId;
-                    info.objid = object.id;
-                    info.color = color;
-                    info.show = true;
-                    state->viewer->supervoxel_info.push_back(info);
-                    state->viewer->hdf5_read(info);
+                       supervoxel info;
+                       info.seed = subobjectId;
+                       info.objid = object.id;
+                       info.color = color;
+                       info.show = true;
+                       state->viewer->supervoxel_info.push_back(info);
+                       state->viewer->hdf5_read(info);
                     // to color all the selected supervoxels by their respective colors once they are not the current active selection
-                    int k = state->viewer->supervoxel_info.size()-1;
-                    if(k > 0){
-                      std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
-                      while(i != state->viewer->supervoxel_info.end() && i->objid != object.id)
-                      {
-                            color = segmentation.colorObjectFromSubobjectId(i->seed);
-                            i->color = color;
-                            state->viewer->hdf5_read(*i);
-                            i++;
-                      }
-                    }
+                    segmentation.change_colors(object.id);
                   }
-               }
-               //rutuja - removed this from original code
-               /* } else if (segmentation.isSelected(objIndex)) {// unselect if selected
+                }
+                //rutuja - removed this from original code
+                /* } else if (segmentation.isSelected(objIndex)) {// unselect if selected
                     segmentation.unselectObject(objIndex);
                 } else { // select largest object
                     segmentation.selectObject(objIndex);
@@ -452,7 +440,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                 }
             }
             //rutuja - to delete a subobject from object
-            if (subobjectId != 0 && event->modifiers().testFlag(Qt::ControlModifier)) {// delete a subobject
+            if (subobjectId != 0 && event->modifiers().testFlag(Qt::ShiftModifier)) {// delete a subobject
 
                 auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
                 auto objIndex = segmentation.largestObjectContainingSubobject(subobject);

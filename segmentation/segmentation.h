@@ -176,7 +176,9 @@ public:
     uint8_t alpha;
     //**rutuja**//
     uint8_t alpha_border;
+    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> activeid_color = {255,0,0,255};
     bool flag_delete = false;
+    bool active_index_change = false;
     uint64_t deleted_id = 0;
     bool createandselect = false;
      bool load_annotation = false;
@@ -191,6 +193,9 @@ public:
     void clearActiveSelection();
     void remObject(uint64_t subobjectid, Segmentation::Object & sub);
     std::size_t activeObjectsCount() const;
+    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> get_active_color();
+    void set_active_color();
+    void change_colors(uint64_t objid);
 
     brush_subject brush;
     // for mode in which edges are online highlighted for objects when selected and being hovered over by mouse

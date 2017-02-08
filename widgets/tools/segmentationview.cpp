@@ -21,7 +21,7 @@
  */
 
 #include "segmentationview.h"
-
+#include <iostream>
 #include "model_helper.h"
 #include "viewer.h"
 
@@ -298,11 +298,12 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
         table.sortByColumn(sortIndex = 1, Qt::SortOrder::AscendingOrder);
     };
 
-    setupTable(touchedObjsTable, touchedObjectModel, touchedObjSortSectionIndex);
-    touchedLayoutWidget.hide();
     //rutuja
     setupTable(objectsTable, objectProxyModelComment, touchedObjSortSectionIndex);
     objectLayoutWidget.hide();
+
+    setupTable(touchedObjsTable, touchedObjectModel, touchedObjSortSectionIndex);
+    touchedLayoutWidget.hide();
 
     //proxy model chaining, so we can filter twice
     objectProxyModelCategory.setSourceModel(&objectModel);
@@ -330,16 +331,16 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     objectTableLayout.addWidget(&objectsTable);
     objectLayoutWidget.setLayout(&objectTableLayout);
 
-    splitter.setOrientation(Qt::Horizontal);
-    splitter.addWidget(&touchedObjsTable);
-    splitter.addWidget(&touchedLayoutWidget);
-    splitter.setStretchFactor(0, 5);
-
     //rutuja -set the active object window
-    splitter.setOrientation(Qt::Vertical);
+    splitter.setOrientation(Qt::Horizontal);
     splitter.addWidget(&objectsTable);
     splitter.addWidget(&objectLayoutWidget);
     splitter.setStretchFactor(0, 5);
+
+    splitter.setOrientation(Qt::Vertical);
+    splitter.addWidget(&touchedObjsTable);
+    splitter.addWidget(&touchedLayoutWidget);
+
 
     layout.addLayout(&filterLayout);
     layout.addWidget(&splitter);
@@ -538,6 +539,8 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
     //rutuja - to disable deselecting of objects from the viewer that have already been selected.
     //Adding the ability to selectively
     auto & seg = Segmentation::singleton();
+
+    //clear the current active indices from list
     Segmentation::singleton().activeIndices.clear();
 
     if(selected.indexes().size() != 0)
@@ -550,28 +553,33 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
                 Segmentation::singleton().activeIndices.emplace_back(proxy(index.row()));
             }
        }
-    } else {
+    } else{
+      //create a copy of the selectedObjectindices to delete the
+      //the rest excep the one selected as active currently
+      size_t size = seg.selectedObjectIndices.size();
+      std::vector<uint64_t> temp(size);
+      std::vector<uint64_t>::iterator it;
+      for(uint64_t  o = 0;o < size; o++)
+      {
+         temp.at(o) = o;
+      }
 
-        size_t size = seg.selectedObjectIndices.size();
+      for (const auto & index : deselected.indexes())
+      {
 
-        std::vector<uint64_t> temp(size);
-        std::vector<uint64_t>::iterator it;
-        for(uint64_t  o = 0;o < size; o++)
+        it = std::find(temp.begin(),temp.end(),proxy(index.row()));
+        if(it != temp.end())
         {
-          temp.at(o) = o;
+           temp.erase(it);
         }
 
-        for (const auto & index : deselected.indexes()) {
-
-           it = std::find(temp.begin(),temp.end(),proxy(index.row()));
-           if(it != temp.end())
-           {
-               temp.erase(it);
-           }
-
-        }
-        seg.activeIndices.emplace_back(temp.front());
+      }
+      seg.activeIndices.emplace_back(temp.front());
     }
+
+    seg.active_index_change = true;
+
+
 
     //old code - commented by rutuja
     /*for (const auto & index : deselected.indexes()) {
@@ -655,4 +663,26 @@ uint64_t SegmentationView::indexFromRow(const SegmentationObjectModel &, const Q
 }
 uint64_t SegmentationView::indexFromRow(const TouchedObjectModel & model, const QModelIndex index) const {
     return model.objectCache[index.row()].get().index;
+}
+
+//rutuja - adding active object window
+SuperChunkView::SuperChunkView(QWidget * const parent) : QWidget(parent) {
+
+
+    auto setupTable = [this](auto & table, auto & model, auto & sortIndex){
+        table.setModel(&model);
+        table.setAllColumnsShowFocus(true);
+        table.setContextMenuPolicy(Qt::CustomContextMenu);
+        table.setUniformRowHeights(true);//perf hint from doc
+        table.setRootIsDecorated(false);//remove padding to the left of each cell’s content
+        table.setSelectionMode(QAbstractItemView::ExtendedSelection);
+        table.setItemDelegateForColumn(3, &categoryDelegate);
+        table.setSortingEnabled(true);
+        table.sortByColumn(sortIndex = 1, Qt::SortOrder::AscendingOrder);
+    };
+
+    setupTable(activeObject, activeObjProxyModelComment, activeObjSortSectionIndex);
+    activeObjectLayoutWidget.hide();
+
+
 }

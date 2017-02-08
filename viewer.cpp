@@ -380,7 +380,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                    //object of the selected current subobjectid
                    const auto & obj = seg.objects.at(id);
                    //curent active object
-                   const auto & objid = seg.objects.back();
+                   const auto & objid = seg.activeIndices.back()+1;
 
                    if(!obj.on_off)
                    {
@@ -389,14 +389,23 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                        reinterpret_cast<uint8_t*>(slice)[2] = 0;
                        reinterpret_cast<uint8_t*>(slice)[3] = 0;
 
+
                    }
 
-                   if(obj.id == objid.id)
+                   else if(obj.id == objid)
                    {
                        reinterpret_cast<uint8_t*>(slice)[0] = 255;
                        reinterpret_cast<uint8_t*>(slice)[1] = 0;
                        reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                       reinterpret_cast<uint8_t*>(slice)[3] = 100;
+                       reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha;
+                       seg.set_active_color();
+                       if(seg.active_index_change)
+                       {
+
+                           seg.active_index_change = false;
+                           seg.change_colors(objid);
+
+                       }
 
                    }
                 }
@@ -1364,7 +1373,7 @@ int Viewer::hdf5_read(supervoxel& x)
     }
 
     group_id = H5Gopen(file_id, "/meshes",H5P_DEFAULT);
-    std::cout << group_id << std::endl;
+
     int number_of_zeros = 8;
     int buf[3];
     int number[1];

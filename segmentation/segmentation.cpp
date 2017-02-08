@@ -21,7 +21,7 @@
  */
 
 #include "segmentation.h"
-
+#include <iostream>
 #include "file_io.h"
 #include "loader.h"
 #include "session.h"
@@ -593,33 +593,44 @@ void Segmentation::mergelistLoad(QIODevice & file) {
         bool valid3 = !(comment = stream.readLine()).isNull();
 
         if (valid0 && valid1 && valid2 && valid3) {
-            auto & obj = createObjectFromSubobjectId(initialVolume, location, objId, todo, immutable);
             uint64_t subObjId;
+            supervoxel info;
+            auto & obj = createObjectFromSubobjectId(initialVolume, location, objId, todo, immutable);
+            //rutuja- get the initial subobjectid
+            info.seed = initialVolume;
+            info.objid = obj.id;
+            color = colorObjectFromSubobjectId(subObjId);
+            info.color = color;
+            info.show = true;
+            state->viewer->supervoxel_info.push_back(info);
             while (lineStream >> subObjId) {
                 newSubObject(obj, subObjId);
-                if(state->hdf5_found){
-                color = colorObjectFromIndex(objId);
-                supervoxel info;
-                info.seed = objId;
+                //rutuja - get the rest of the subobjectids
+                info.seed = subObjId;
                 info.objid = obj.id;
+                color = colorObjectFromSubobjectId(subObjId);
                 info.color = color;
                 info.show = true;
-                state->viewer->supervoxel_info.push_back(info);}
+                state->viewer->supervoxel_info.push_back(info);
 
             }
             selectObject(obj);
+
             std::sort(std::begin(obj.subobjects), std::end(obj.subobjects));
             changeCategory(obj, category);
             if (customColorValid) {
                 changeColor(obj, std::make_tuple(r, g, b));
             }
             obj.comment = comment;
+            //rutuja
+
         } else {
             blockSignals(blockState);
             Segmentation::clear();
             throw std::runtime_error("mergelistLoad parsing failed");
         }
     }
+    std::cout << state->viewer->supervoxel_info.size() << std::endl;
     blockSignals(blockState);
     emit resetData();
 }
@@ -804,28 +815,25 @@ void Segmentation::remObject(uint64_t subobjectid, Segmentation::Object & sub)
 // rutuja - clear only the subobjects in the active selection
 void Segmentation::clearActiveSelection(){
 
-
-     while(!activeIndices.empty())
-    {
-       activeIndices.clear();
-    }
-
-
+   while(!activeIndices.empty())
+   {
+     activeIndices.clear();
+   }
 }
 
 //rutuja - delete a single subobject from an object in the 3d mesh
 void Segmentation::cell_delete(){
-    auto & segment = Segmentation::singleton();
-    auto & skeleton = Skeletonizer::singleton();
-    //segment.flag_delete_cell = false;
-    std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
-    while(i != state->viewer->supervoxel_info.end()){
-         if(i->seed == segment.deleted_cell_id){
-           uint64_t objId = i->objid;
-           i = state->viewer->supervoxel_info.erase(i);
+   auto & segment = Segmentation::singleton();
+   auto & skeleton = Skeletonizer::singleton();
+   //segment.flag_delete_cell = false;
+   std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
+   while(i != state->viewer->supervoxel_info.end()){
+        if(i->seed == segment.deleted_cell_id){
+          uint64_t objId = i->objid;
+          i = state->viewer->supervoxel_info.erase(i);
 
-           break;
-         }
+          break;
+        }
         i++;
     }
     skeleton.deleteMeshOfTree(segment.deleted_cell_id);
@@ -833,49 +841,81 @@ void Segmentation::cell_delete(){
 
 //rutuja- selectively turn on/off branches of meshes in 3D window
 void Segmentation::branch_onoff(Segmentation::Object & obj) {
-    auto & skeleton = Skeletonizer::singleton();
-    int size = state->viewer->supervoxel_info.size();
+   auto & skeleton = Skeletonizer::singleton();
+   int size = state->viewer->supervoxel_info.size();
 
-    std::vector<supervoxel>::iterator it = state->viewer->supervoxel_info.begin();
-    int k = 0;
-    while(k < size ){
+   std::vector<supervoxel>::iterator it = state->viewer->supervoxel_info.begin();
+   int k = 0;
+   while(k < size ){
         if(it->objid == obj.id){
 
-             it->show = obj.on_off;
-             if(it->show)
-             {
-                state->viewer->hdf5_read(*it);
-             }
-             else
-             {
-                 skeleton.deleteMeshOfTree(it->seed);
-             }
+           it->show = obj.on_off;
+           if(it->show)
+           {
+              state->viewer->hdf5_read(*it);
+           }else {
+              skeleton.deleteMeshOfTree(it->seed);
+           }
 
         }
 
        it++;
        k++;
     }
-
 }
 
 //rutuja- Delete an entire tree from the 3D mesh
 void Segmentation::branch_delete(){
 
-     auto & segment = Segmentation::singleton();
-     segment.flag_delete = false;
-     std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
-     while(i != state->viewer->supervoxel_info.end()){
-          if(i->objid == segment.deleted_id){
-              i = state->viewer->supervoxel_info.erase(i);
+   auto & segment = Segmentation::singleton();
+   segment.flag_delete = false;
+   std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
+   while(i != state->viewer->supervoxel_info.end()){
+        if(i->objid == segment.deleted_id){
+           i = state->viewer->supervoxel_info.erase(i);
+        }else{
+           i++;
+        }
+   }
+}
 
-          }
-          else{
-              i++;
-          }
+//rutuja - get active id color
+ std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> Segmentation::get_active_color()
+{
+   return activeid_color;
+}
 
+void Segmentation::set_active_color()
+{
+   activeid_color = {250, 0 ,0 , alpha};
+}
 
-     }
+//rutuja - function to dynamicaaly switch colors between current
+//active and non active supervoxels
+void Segmentation::change_colors(uint64_t objid)
+{
 
+    int k = state->viewer->supervoxel_info.size();
+    std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color;
+    if(k > 1){
+       std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
+       while(i != state->viewer->supervoxel_info.end())
+       {
+         if(i->objid != objid)
+         {
+           color = colorObjectFromSubobjectId(i->seed);
+           i->color = color;
+           state->viewer->hdf5_read(*i);
+           i++;
+         }
+         else
+         {
+           i->color = get_active_color();
+           state->viewer->hdf5_read(*i);
+           i++;
+         }
+       }
+    }
 
 }
+

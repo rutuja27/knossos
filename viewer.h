@@ -136,7 +136,7 @@ struct ViewerState {
     float FOVmin{0.5};
     float FOVmax{1};
     bool drawVPCrosshairs{true};
-    RotationCenter rotationCenter{RotationCenter::ActiveNode};
+    RotationCenter rotationCenter{RotationCenter::CurrentPosition};
     int showIntersections{false};
     bool showScalebar{false};
     bool enableArbVP{false};

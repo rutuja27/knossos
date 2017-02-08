@@ -55,6 +55,7 @@ public:
 class SegmentationObjectModel : public QAbstractListModel {
 Q_OBJECT
     friend class SegmentationView;//selection
+    friend class ActiveObjectModel;//rutuja not sure
 protected:
     //rutuja
     const std::vector<QString> header{"on-off","color", "Object ID", "Lock", "Category", "Comment", "#", "Subobject IDs"};
@@ -159,6 +160,33 @@ public:
     uint64_t indexFromRow(const TouchedObjectModel & model, const QModelIndex index) const;
 public slots:
     void filter();
+};
+
+class ActiveObjectModel :public QAbstractListModel
+{
+    friend class SuperChunkView;
+    const std::vector<QString> header = {"ID", "x", "y", "z"};
+
+};
+
+class SuperChunkView : public QWidget
+{
+   ActiveObjectModel activeobject;
+   QTreeView activeObject;
+
+   QSortFilterProxyModel activeObjProxyModelComment;
+
+   UserOrientableSplitter splitter;
+   QWidget activeObjectLayoutWidget;
+   QHBoxLayout activeobjectLayout;
+   QLabel activeObjectLabel{"<strong>Objects containing subobject</strong>"};
+
+   QMenu activeObjsContextMenu{&activeObject};
+   int activeObjSortSectionIndex;
+
+public:
+
+
 };
 
 #endif//SEGMENTATIONVIEW_H

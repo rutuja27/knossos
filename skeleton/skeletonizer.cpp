@@ -37,6 +37,7 @@
 #include "viewer.h"
 #include "widgets/viewport.h"
 #include "widgets/mainwindow.h"
+#include "boost/optional/optional_io.hpp"
 
 #include <QDataStream>
 #include <QElapsedTimer>
