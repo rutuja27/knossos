@@ -368,6 +368,7 @@ std::vector<std::reference_wrapper<Segmentation::Object>> Segmentation::touchedO
             vec.emplace_back(objects[index]);
         }
     }
+
     return vec;
 }
 
@@ -630,7 +631,6 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             throw std::runtime_error("mergelistLoad parsing failed");
         }
     }
-    std::cout << state->viewer->supervoxel_info.size() << std::endl;
     blockSignals(blockState);
     emit resetData();
 }

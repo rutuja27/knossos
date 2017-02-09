@@ -87,10 +87,12 @@ int SegmentationObjectModel::columnCount(const QModelIndex &) const {
 QVariant SegmentationObjectModel::headerData(int section, Qt::Orientation orientation, int role) const {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
         return header[section];
+
     } else {
         return QVariant();//return invalid QVariant
     }
 }
+
 
 QVariant SegmentationObjectModel::objectGet(const Segmentation::Object &obj, const QModelIndex & index, int role) const {
     //rutuja - extra column added for the branch on-off functionality
@@ -298,10 +300,6 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
         table.sortByColumn(sortIndex = 1, Qt::SortOrder::AscendingOrder);
     };
 
-    //rutuja
-    setupTable(objectsTable, objectProxyModelComment, touchedObjSortSectionIndex);
-    objectLayoutWidget.hide();
-
     setupTable(touchedObjsTable, touchedObjectModel, touchedObjSortSectionIndex);
     touchedLayoutWidget.hide();
 
@@ -310,7 +308,12 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     objectProxyModelComment.setSourceModel(&objectProxyModelCategory);
     objectProxyModelCategory.setFilterKeyColumn(3);
     objectProxyModelComment.setFilterKeyColumn(4);
+    setupTable(objectsTable, objectProxyModelComment, objSortSectionIndex);
 
+    //rutuja - add active table
+    activeObjectModelCategory.setSourceModel(&activeObjectModel);
+    activeObjectModelComment.setSourceModel(&activeObjectModelCategory);
+    setupTable(activeTable, activeObjectModelComment, objSortSectionIndex );
 
     filterLayout.addWidget(&categoryFilter);
     filterLayout.addWidget(&commentFilter);
@@ -326,21 +329,20 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     touchedTableLayout.addWidget(&touchedObjsTable);
     touchedLayoutWidget.setLayout(&touchedTableLayout);
 
-    //rutuja-add active object window
-    objectTableLayout.addWidget(&ObjectsLabel);
-    objectTableLayout.addWidget(&objectsTable);
-    objectLayoutWidget.setLayout(&objectTableLayout);
+    //rutuja
+    activeObjectLayout.addWidget(&activeObjectLabel);
+    activeObjectLayout.addWidget(&activeTable);
+    activeObjectLayoutWidget.setLayout(&activeObjectLayout);
 
-    //rutuja -set the active object window
     splitter.setOrientation(Qt::Horizontal);
     splitter.addWidget(&objectsTable);
-    splitter.addWidget(&objectLayoutWidget);
-    splitter.setStretchFactor(0, 5);
-
-    splitter.setOrientation(Qt::Vertical);
-    splitter.addWidget(&touchedObjsTable);
     splitter.addWidget(&touchedLayoutWidget);
+    splitter.setStretchFactor(0,5);
 
+    //rutuja -set the active object window
+    splitter.setOrientation(Qt::Vertical);
+    splitter.addWidget(&activeTable);
+    splitter.addWidget(&activeObjectLayoutWidget);
 
     layout.addLayout(&filterLayout);
     layout.addWidget(&splitter);
@@ -371,6 +373,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     }
 
     QObject::connect(&Segmentation::singleton(), &Segmentation::beforeAppendRow, &objectModel, &SegmentationObjectModel::appendRowBegin);
+    //QObject::connect(&Segmentation::singleton(), &Segmentation:::beforeAppendRow, &activeObjectModel, &ActiveObjectModel::appendRowBegin);
     QObject::connect(&Segmentation::singleton(), &Segmentation::beforeRemoveRow, [this](){
         objectSelectionProtection = true;
         objectModel.popRowBegin();
@@ -381,6 +384,8 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
         }
         objectSelectionProtection = false;
         touchedObjectModel.recreate();
+        //rutuja
+        //activeObjectModel.recreate();
         updateTouchedObjSelection();
         updateLabels();
     });
@@ -394,18 +399,24 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
         }
         objectSelectionProtection = false;
         touchedObjectModel.recreate();
+        //rutuja
+        //activeObjectModel.recreate();
         updateTouchedObjSelection();
         updateLabels();
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::removedRow, [this](){
         objectModel.popRow();
         touchedObjectModel.recreate();
+        //rutuja
+        //activeObjectModel.recreate();
         updateTouchedObjSelection();
         updateLabels();
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::changedRow, [this](int index){
         objectModel.changeRow(index);
         touchedObjectModel.recreate();
+        //rutuja
+        //activeObjectModel.recreate();
         updateLabels();//maybe subobject count changed
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::changedRowSelection, [this](int index){
@@ -419,12 +430,16 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
                 objectsTable.selectionModel()->setCurrentIndex(proxyIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
             }
             touchedObjectModel.recreate();
+            //rutuja
+            //activeObjectModel.recreate();
             updateTouchedObjSelection();
         }
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::resetData, [this](){
         touchedObjsTable.clearSelection();
         touchedObjectModel.recreate();
+        //rutuja
+        //activeObjectModel.recreate();
         objectsTable.clearSelection();
         objectModel.recreate();
         updateSelection();
@@ -433,6 +448,8 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::resetTouchedObjects, [this]() {
         touchedObjectModel.recreate();
+        //rutuja
+        //activeObjectModel.recreate();
         touchedLayoutWidget.setHidden(touchedObjectModel.objectCache.size() <= 1);
         touchedObjectsLabel.setText(tr("<strong>Objects containing subobject %1</strong>").arg(Segmentation::singleton().touched_subobject_id));
     });
@@ -477,6 +494,9 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
     QObject::connect(touchedObjsTable.header(), &QHeaderView::sortIndicatorChanged, threeWaySorting(touchedObjsTable, touchedObjSortSectionIndex));
     QObject::connect(objectsTable.header(), &QHeaderView::sortIndicatorChanged, threeWaySorting(objectsTable, objSortSectionIndex));
+    //rutuja
+    QObject::connect(activeTable.header(), &QHeaderView::sortIndicatorChanged, threeWaySorting(activeTable, objSortSectionIndex));
+
     QObject::connect(&objectsTable, &QTreeView::doubleClicked, [this](const QModelIndex index){
         if (index.column() == 1) {//only on id cell
             Segmentation::singleton().jumpToObject(indexFromRow(objectModel, index));
@@ -661,28 +681,99 @@ void SegmentationView::updateLabels() {
 uint64_t SegmentationView::indexFromRow(const SegmentationObjectModel &, const QModelIndex index) const {
     return objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource({index, index})).indexes().front().row();
 }
-uint64_t SegmentationView::indexFromRow(const TouchedObjectModel & model, const QModelIndex index) const {
+uint64_t SegmentationView::indexFromRow(const TouchedObjectModel &model, const QModelIndex index) const {
     return model.objectCache[index.row()].get().index;
 }
 
-//rutuja - adding active object window
-SuperChunkView::SuperChunkView(QWidget * const parent) : QWidget(parent) {
+uint64_t SegmentationView::indexFromRow(const ActiveObjectModel &model, const QModelIndex index) const {
+    return 0;//model.objectCache[index.row()].get().index;
+}
 
+//rutuja - to dispaly the header of the active window
+QVariant ActiveObjectModel::headerData(int section, Qt::Orientation orientation, int role) const{
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+        return header[section];
 
-    auto setupTable = [this](auto & table, auto & model, auto & sortIndex){
-        table.setModel(&model);
-        table.setAllColumnsShowFocus(true);
-        table.setContextMenuPolicy(Qt::CustomContextMenu);
-        table.setUniformRowHeights(true);//perf hint from doc
-        table.setRootIsDecorated(false);//remove padding to the left of each cell’s content
-        table.setSelectionMode(QAbstractItemView::ExtendedSelection);
-        table.setItemDelegateForColumn(3, &categoryDelegate);
-        table.setSortingEnabled(true);
-        table.sortByColumn(sortIndex = 1, Qt::SortOrder::AscendingOrder);
-    };
+    } else {
+        return QVariant();//return invalid QVariant
+    }
+}
 
-    setupTable(activeObject, activeObjProxyModelComment, activeObjSortSectionIndex);
-    activeObjectLayoutWidget.hide();
+int ActiveObjectModel::rowCount(const QModelIndex &) const {
+    /*if(activeObjectCache.size() != 0){
+      //std::cout <<"inside" << std::endl;
+      Segmentation::Object & obj = activeObjectCache.back().get();
+      return obj.subobjects.size();
 
+    }else{
+      std::cout << "j" << std::endl;
+      return activeObjectCache.size();*/
 
 }
+
+void ActiveObjectModel::recreate() {
+    /*activeObjectCache = Segmentation::singleton().touchedObjects();
+    std::cout << "i" << std::endl;
+    if(activeObjectCache.size() != 0){
+      //std::cout <<"inside" << std::endl;
+      Segmentation::Object & obj = activeObjectCache.back().get();
+     // obj.subobjects.size();
+
+    }else{
+
+      //return 0;
+    }*/
+    //activeObjectCache.clear();
+    /*auto  objIndex = Segmentation::singleton().activeIndices.back();
+    auto & obj = Segmentation::singleton().objects.at(objIndex);
+    int elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
+    auto subobjectIt = std::begin(obj.subobjects);
+    for (std::size_t i = 0; i < elemCount; ++i) {
+        activeObjectCache.emplace_back(subobjectIt->get().id) ;
+        std::cout << subobjectIt->get().id << std::endl;
+        subobjectIt = std::next(subobjectIt);
+    }*/
+
+}
+
+/*QVariant ActiveObjectModel::data(const QModelIndex & index, int role) const {
+    if (index.isValid()) {
+        //http://coliru.stacked-crooked.com/a/98276b01d551fb41
+        const auto & obj = activeObjectCache[index.row()].get();
+        return objectGet(obj, index, role);
+    }
+    return QVariant();//return invalid QVariant
+}*/
+
+
+/*QVariant ActiveObjectModel::objectGet(const Segmentation::Object &obj, const QModelIndex & index, int role) const {
+    //rutuja - extra column added for the branch on-off functionality
+    if(index.column() == 0 && role == Qt::CheckStateRole){
+        return (obj.on_off ? Qt::Checked : Qt::Unchecked);
+    } else if (index.column() == 1 && (role == Qt::BackgroundRole || role == Qt::DecorationRole)) {
+        const auto color = Segmentation::singleton().colorObjectFromIndex(obj.index);
+        return QColor(std::get<0>(color), std::get<1>(color), std::get<2>(color));
+    } else if (index.column() == 3 && role == Qt::CheckStateRole) {
+        return (obj.immutable ? Qt::Checked : Qt::Unchecked);
+    } else if (role == Qt::DisplayRole || role == Qt::EditRole) {
+        switch (index.column()) {
+        case 2: return static_cast<quint64>(obj.id);
+        case 4: return obj.category;
+        case 5: return obj.comment;
+        case 6: return static_cast<quint64>(obj.subobjects.size());
+        case 7: {
+            QString output;
+            const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
+            auto subobjectIt = std::begin(obj.subobjects);
+            for (std::size_t i = 0; i < elemCount; ++i) {
+                output += QString::number(subobjectIt->get().id) + ", ";
+                subobjectIt = std::next(subobjectIt);
+            }
+            output.chop(2);
+            output += (obj.subobjects.size() > MAX_SHOWN_SUBOBJECTS) ? "…" : "";;
+            return output;
+        }
+        }
+    }
+    return QVariant();//return invalid QVariant
+}*/

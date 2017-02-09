@@ -55,15 +55,17 @@ public:
 class SegmentationObjectModel : public QAbstractListModel {
 Q_OBJECT
     friend class SegmentationView;//selection
-    friend class ActiveObjectModel;//rutuja not sure
+
 protected:
     //rutuja
     const std::vector<QString> header{"on-off","color", "Object ID", "Lock", "Category", "Comment", "#", "Subobject IDs"};
+
     const std::size_t MAX_SHOWN_SUBOBJECTS = 10;
 public:
     virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override;
     virtual int columnCount(const QModelIndex & parent = QModelIndex()) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    //rutuja - method changed from function to virtual function
     QVariant objectGet(const Segmentation::Object & obj, const QModelIndex & index, int role) const;
     virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
     bool objectSet(Segmentation::Object & obj, const QModelIndex & index, const QVariant & value, int role);
@@ -96,6 +98,22 @@ public:
     void recreate();
 };
 
+class ActiveObjectModel: public SegmentationObjectModel {
+    Q_OBJECT
+    //friend class SegmentationView;
+protected:
+    const std::vector<QString> header = {"ID", "x", "y", "z"};
+    std::vector<std::reference_wrapper<Segmentation::Object>> activeObjectCache;
+public:
+    virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
+    //virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
+    //virtual QVariant objectGet(const Segmentation::Object & obj, const QModelIndex & index, int role) const;
+    void recreate();
+};
+
+
+
 class SegmentationView : public QWidget {
 Q_OBJECT
     QVBoxLayout layout;
@@ -116,6 +134,7 @@ Q_OBJECT
     QPushButton objectCreateButton{"Create new object"};
 
     SegmentationObjectModel objectModel;
+    ActiveObjectModel activeObjectModel;
     QSortFilterProxyModel objectProxyModelCategory;
     QSortFilterProxyModel objectProxyModelComment;
     TouchedObjectModel touchedObjectModel;
@@ -127,6 +146,14 @@ Q_OBJECT
     QHBoxLayout touchedTableLayout;
     QLabel touchedObjectsLabel{"<strong>Objects containing subobject</strong>"};
 
+    //rutuja- adding superchunk window
+    QWidget activeObjectLayoutWidget;
+    QHBoxLayout activeObjectLayout;
+    QLabel activeObjectLabel{""};
+    QTreeView activeTable;
+    QSortFilterProxyModel activeObjectModelComment;
+    QSortFilterProxyModel activeObjectModelCategory;
+    QMenu activeObjContextMenu{&activeTable};
     //rutuja
     QLabel ObjectsLabel{"objectsTable"};
 
@@ -158,35 +185,12 @@ public:
     void updateLabels();
     uint64_t indexFromRow(const SegmentationObjectModel & model, const QModelIndex index) const;
     uint64_t indexFromRow(const TouchedObjectModel & model, const QModelIndex index) const;
+    uint64_t indexFromRow(const ActiveObjectModel & model, const QModelIndex index) const;
 public slots:
     void filter();
 };
 
-class ActiveObjectModel :public QAbstractListModel
-{
-    friend class SuperChunkView;
-    const std::vector<QString> header = {"ID", "x", "y", "z"};
-
-};
-
-class SuperChunkView : public QWidget
-{
-   ActiveObjectModel activeobject;
-   QTreeView activeObject;
-
-   QSortFilterProxyModel activeObjProxyModelComment;
-
-   UserOrientableSplitter splitter;
-   QWidget activeObjectLayoutWidget;
-   QHBoxLayout activeobjectLayout;
-   QLabel activeObjectLabel{"<strong>Objects containing subobject</strong>"};
-
-   QMenu activeObjsContextMenu{&activeObject};
-   int activeObjSortSectionIndex;
-
-public:
 
 
-};
 
 #endif//SEGMENTATIONVIEW_H
