@@ -59,13 +59,11 @@ Q_OBJECT
 protected:
     //rutuja
     const std::vector<QString> header{"on-off","color", "Object ID", "Lock", "Category", "Comment", "#", "Subobject IDs"};
-
     const std::size_t MAX_SHOWN_SUBOBJECTS = 10;
 public:
     virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override;
     virtual int columnCount(const QModelIndex & parent = QModelIndex()) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-    //rutuja - method changed from function to virtual function
     QVariant objectGet(const Segmentation::Object & obj, const QModelIndex & index, int role) const;
     virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
     bool objectSet(Segmentation::Object & obj, const QModelIndex & index, const QVariant & value, int role);
@@ -103,13 +101,21 @@ class ActiveObjectModel: public SegmentationObjectModel {
     //friend class SegmentationView;
 protected:
     const std::vector<QString> header = {"ID", "x", "y", "z"};
-    std::vector<std::reference_wrapper<Segmentation::Object>> activeObjectCache;
+    const std::size_t MAX_SHOWN_SUBOBJECTS = 10;
+
 public:
+    int number = 0;
+    bool index_isdone;
+    std::vector<uint64_t> activeObjectCache;
     virtual int rowCount(const QModelIndex & parent = QModelIndex()) const override;
+    virtual int columnCount(const QModelIndex & parent = QModelIndex()) const override;
     virtual QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const override;
-    //virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
-    //virtual QVariant objectGet(const Segmentation::Object & obj, const QModelIndex & index, int role) const;
+    virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
+    QVariant objectGet(uint64_t id, const QModelIndex & index, int role) const;
+    void fill_mergelist(const Segmentation::Object &obj);
     void recreate();
+    void appendRow();
+    void appendRowBegin();
 };
 
 
@@ -134,6 +140,7 @@ Q_OBJECT
     QPushButton objectCreateButton{"Create new object"};
 
     SegmentationObjectModel objectModel;
+     //rutuja
     ActiveObjectModel activeObjectModel;
     QSortFilterProxyModel objectProxyModelCategory;
     QSortFilterProxyModel objectProxyModelComment;
@@ -178,6 +185,7 @@ Q_OBJECT
     QHBoxLayout objectTableLayout;
 public:
     explicit SegmentationView(QWidget * const parent = nullptr);
+    static SegmentationView & singleton();
     void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void touchedObjSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void updateSelection();
@@ -185,9 +193,10 @@ public:
     void updateLabels();
     uint64_t indexFromRow(const SegmentationObjectModel & model, const QModelIndex index) const;
     uint64_t indexFromRow(const TouchedObjectModel & model, const QModelIndex index) const;
-    uint64_t indexFromRow(const ActiveObjectModel & model, const QModelIndex index) const;
 public slots:
     void filter();
+signals:
+    void changeSelection();
 };
 
 

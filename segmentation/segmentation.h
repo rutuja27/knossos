@@ -185,6 +185,7 @@ public:
     //bool flag_delete_cell = false;
     uint64_t deleted_cell_id =0;
     hash_list<uint64_t> activeIndices;
+    uint64_t currentmergeid = 0;
 
     //rutuja
     void branch_onoff(Segmentation::Object & obj);
@@ -196,6 +197,9 @@ public:
     std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> get_active_color();
     void set_active_color();
     void change_colors(uint64_t objid);
+    void setCurrentmergeid(uint64_t);
+    uint64_t getCurrentmergeid();
+
 
     brush_subject brush;
     // for mode in which edges are online highlighted for objects when selected and being hovered over by mouse
@@ -277,6 +281,10 @@ signals:
     void categoriesChanged();
     void todosLeftChanged();
     void hoveredSubObjectChanged(const uint64_t subobject_id, const std::vector<uint64_t> & overlapObjects);
+    void merge();
+    void beforemerge();
+    void appendmerge();
+    void changeactive();
 public slots:
     void clear();
     void deleteSelectedObjects();

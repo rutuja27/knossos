@@ -47,6 +47,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
     auto & seg = Segmentation::singleton();
     const auto brushCenter = getCoordinateFromOrthogonalClick(event->x(), event->y(), vp);
     const auto subobjectIds = readVoxels(brushCenter, seg.brush.value());
+    int h = 1;
     for (const auto subobjectPair : subobjectIds) {
 
         if (seg.activeObjectsCount() == 1) {//rutuja
@@ -96,6 +97,9 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         info.show = true;
                         state->viewer->supervoxel_info.push_back(info);
                         state->viewer->hdf5_read(info);
+                        emit seg.beforemerge();
+                        seg.setCurrentmergeid(soid);
+                        emit seg.merge();
 
 
                 }
@@ -103,6 +107,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
             }
             seg.touchObjects(soid);
         }
+        h++;
     }
 }
 
@@ -423,8 +428,11 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                        info.show = true;
                        state->viewer->supervoxel_info.push_back(info);
                        state->viewer->hdf5_read(info);
-                    // to color all the selected supervoxels by their respective colors once they are not the current active selection
-                    segmentation.change_colors(object.id);
+                       // to color all the selected supervoxels by their respective colors once they are not the current active selection
+                       segmentation.change_colors(object.id);
+                       emit segmentation.beforemerge();
+                       segmentation.setCurrentmergeid(subobjectId);
+                       emit segmentation.appendmerge();
                   }
                 }
                 //rutuja - removed this from original code

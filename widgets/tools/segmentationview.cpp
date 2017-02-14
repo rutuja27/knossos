@@ -73,10 +73,12 @@ bool TouchedObjectModel::setData(const QModelIndex & index, const QVariant & val
 void TouchedObjectModel::recreate() {
     beginResetModel();
     objectCache = Segmentation::singleton().touchedObjects();
+    //std::cout << "the size of objectcache is: " << objectCache.size() << std::endl;
     endResetModel();
 }
 
 int SegmentationObjectModel::rowCount(const QModelIndex &) const {
+
     return Segmentation::singleton().objects.size();
 }
 
@@ -87,15 +89,14 @@ int SegmentationObjectModel::columnCount(const QModelIndex &) const {
 QVariant SegmentationObjectModel::headerData(int section, Qt::Orientation orientation, int role) const {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
         return header[section];
-
     } else {
         return QVariant();//return invalid QVariant
     }
 }
 
-
 QVariant SegmentationObjectModel::objectGet(const Segmentation::Object &obj, const QModelIndex & index, int role) const {
     //rutuja - extra column added for the branch on-off functionality
+
     if(index.column() == 0 && role == Qt::CheckStateRole){
         return (obj.on_off ? Qt::Checked : Qt::Unchecked);
     } else if (index.column() == 1 && (role == Qt::BackgroundRole || role == Qt::DecorationRole)) {
@@ -201,6 +202,7 @@ void SegmentationObjectModel::recreate() {
 }
 
 void SegmentationObjectModel::appendRowBegin() {
+    //std::cout << "1" << std::endl;
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
 }
 
@@ -209,6 +211,7 @@ void SegmentationObjectModel::popRowBegin() {
 }
 
 void SegmentationObjectModel::appendRow() {
+    //std::cout << "2" << std::endl;
     endInsertRows();
 }
 
@@ -256,6 +259,11 @@ public:
         protection = prev ? protection : false;
     }
 };
+
+SegmentationView & SegmentationView::singleton() {
+    static SegmentationView segmentationView;
+    return segmentationView;
+}
 
 SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), categoryDelegate(categoryModel) {
     modeGroup.addButton(&twodBtn, 0);
@@ -370,10 +378,43 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
         //resize once, constantly resizing slows down selection and scroll to considerably
         touchedObjsTable.resizeColumnToContents(index);
         objectsTable.resizeColumnToContents(index);
+        //rutuja
+        activeTable.resizeColumnToContents(index);
     }
 
     QObject::connect(&Segmentation::singleton(), &Segmentation::beforeAppendRow, &objectModel, &SegmentationObjectModel::appendRowBegin);
-    //QObject::connect(&Segmentation::singleton(), &Segmentation:::beforeAppendRow, &activeObjectModel, &ActiveObjectModel::appendRowBegin);
+    //rutuja - this needs to be called in order to append a new row for the requierd object model
+    QObject::connect(&Segmentation::singleton(), &Segmentation::beforemerge, &activeObjectModel, &ActiveObjectModel::appendRowBegin);
+
+    //rutuja - this is a signal for a merging data of the current active object
+    QObject::connect(&Segmentation::singleton(), &Segmentation::merge,[this](){
+        activeObjectModel.recreate();
+        activeObjectModel.appendRow();
+
+    });
+
+    //rutuja - this is a signal for a new active object
+    QObject::connect(&Segmentation::singleton(), &Segmentation::appendmerge,[this](){
+        activeObjectModel.activeObjectCache.clear();
+        activeObjectModel.recreate();
+        activeObjectModel.appendRow();
+
+    });
+
+    QObject::connect(&Segmentation::singleton(), &Segmentation::changeactive,[this](){
+        activeObjectModel.activeObjectCache.clear();
+        auto & obj = Segmentation::singleton().objects[Segmentation::singleton().activeIndices.back()];
+        activeObjectModel.fill_mergelist(obj);
+        activeObjectModel.appendRow();
+
+    });
+
+    //rutuja - this is a signal for changing the current active object
+    /*QObject::connect(&Segmentation::singleton(), &Segmentation::appendmerge,[this](){
+        activeObjectModel.activeObjectCache.clear();
+
+
+    });*/
     QObject::connect(&Segmentation::singleton(), &Segmentation::beforeRemoveRow, [this](){
         objectSelectionProtection = true;
         objectModel.popRowBegin();
@@ -384,8 +425,6 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
         }
         objectSelectionProtection = false;
         touchedObjectModel.recreate();
-        //rutuja
-        //activeObjectModel.recreate();
         updateTouchedObjSelection();
         updateLabels();
     });
@@ -396,27 +435,24 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
             const auto index = Segmentation::singleton().objects.back().index;
             const auto & proxyIndex = objectProxyModelComment.mapFromSource(objectProxyModelCategory.mapFromSource(objectModel.index(index, 0)));
             objectsTable.selectionModel()->setCurrentIndex(proxyIndex, QItemSelectionModel::Select | QItemSelectionModel::Rows);
+           // i dont know what is this doing
+            const auto & proxy = activeObjectModelComment.mapFromSource(activeObjectModelCategory.mapFromSource(activeObjectModel.index(index,0)));
+            activeTable.selectionModel()->setCurrentIndex(proxy, QItemSelectionModel::Select | QItemSelectionModel::Rows);
         }
         objectSelectionProtection = false;
         touchedObjectModel.recreate();
-        //rutuja
-        //activeObjectModel.recreate();
         updateTouchedObjSelection();
         updateLabels();
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::removedRow, [this](){
         objectModel.popRow();
         touchedObjectModel.recreate();
-        //rutuja
-        //activeObjectModel.recreate();
         updateTouchedObjSelection();
         updateLabels();
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::changedRow, [this](int index){
         objectModel.changeRow(index);
         touchedObjectModel.recreate();
-        //rutuja
-        //activeObjectModel.recreate();
         updateLabels();//maybe subobject count changed
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::changedRowSelection, [this](int index){
@@ -430,16 +466,12 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
                 objectsTable.selectionModel()->setCurrentIndex(proxyIndex, QItemSelectionModel::Deselect | QItemSelectionModel::Rows);
             }
             touchedObjectModel.recreate();
-            //rutuja
-            //activeObjectModel.recreate();
             updateTouchedObjSelection();
         }
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::resetData, [this](){
         touchedObjsTable.clearSelection();
         touchedObjectModel.recreate();
-        //rutuja
-        //activeObjectModel.recreate();
         objectsTable.clearSelection();
         objectModel.recreate();
         updateSelection();
@@ -448,8 +480,6 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::resetTouchedObjects, [this]() {
         touchedObjectModel.recreate();
-        //rutuja
-        //activeObjectModel.recreate();
         touchedLayoutWidget.setHidden(touchedObjectModel.objectCache.size() <= 1);
         touchedObjectsLabel.setText(tr("<strong>Objects containing subobject %1</strong>").arg(Segmentation::singleton().touched_subobject_id));
     });
@@ -547,8 +577,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
     touchedObjectModel.recreate();
     objectModel.recreate();
-    touchedObjectModel.recreate();
-    objectModel.recreate();
+    //activeObjectModel.recreate();
 
     updateLabels();
 }
@@ -570,7 +599,8 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
 
             if (index.column() == 2) {
 
-                Segmentation::singleton().activeIndices.emplace_back(proxy(index.row()));
+                Segmentation::singleton().activeIndices.emplace_back(proxy(index.row()));             
+
             }
        }
     } else{
@@ -584,10 +614,14 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
          temp.at(o) = o;
       }
 
+
       for (const auto & index : deselected.indexes())
       {
 
         it = std::find(temp.begin(),temp.end(),proxy(index.row()));
+        //const auto & obj = Segmentation::singleton().objects[index.row()];
+        //auto & segmentview = SegmentationView::singleton();
+        //segmentview.activeObjectModel.fill_mergelist(obj);
         if(it != temp.end())
         {
            temp.erase(it);
@@ -596,6 +630,7 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
       }
       seg.activeIndices.emplace_back(temp.front());
     }
+
 
     seg.active_index_change = true;
 
@@ -637,6 +672,8 @@ void SegmentationView::selectionChanged(const QItemSelection & selected, const Q
         const auto & proxySelected = objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource(selected));
         const auto & proxyDeselected = objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource(deselected));
         commitSelection(proxySelected, proxyDeselected);
+        emit Segmentation::singleton().beforemerge();
+        emit Segmentation::singleton().changeactive();
         updateTouchedObjSelection();
     }
 }
@@ -674,106 +711,98 @@ void SegmentationView::filter() {
 }
 
 void SegmentationView::updateLabels() {
-    objectCountLabel.setText(QString("Objects: %1").arg(Segmentation::singleton().objects.size()));
-    subobjectCountLabel.setText(QString("Subobjects: %1").arg(Segmentation::singleton().subobjects.size()));
+   objectCountLabel.setText(QString("Objects: %1").arg(Segmentation::singleton().objects.size()));
+   subobjectCountLabel.setText(QString("Subobjects: %1").arg(Segmentation::singleton().subobjects.size()));
 }
 
 uint64_t SegmentationView::indexFromRow(const SegmentationObjectModel &, const QModelIndex index) const {
-    return objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource({index, index})).indexes().front().row();
+   return objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource({index, index})).indexes().front().row();
 }
 uint64_t SegmentationView::indexFromRow(const TouchedObjectModel &model, const QModelIndex index) const {
-    return model.objectCache[index.row()].get().index;
+   return model.objectCache[index.row()].get().index;
 }
 
-uint64_t SegmentationView::indexFromRow(const ActiveObjectModel &model, const QModelIndex index) const {
-    return 0;//model.objectCache[index.row()].get().index;
+int ActiveObjectModel::columnCount(const QModelIndex &) const {
+   return header.size();
 }
 
 //rutuja - to dispaly the header of the active window
 QVariant ActiveObjectModel::headerData(int section, Qt::Orientation orientation, int role) const{
-    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
-        return header[section];
+   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+       return header[section];
 
-    } else {
-        return QVariant();//return invalid QVariant
-    }
+   } else {
+       return QVariant();//return invalid QVariant
+   }
 }
 
+//rutuja
+void ActiveObjectModel::appendRow() {
+   //Begins a row insertion operation.
+   //When reimplementing insertRows() in a subclass,you must call this
+   //function before inserting data into the model's underlying data store.
+   //std::cout << "2" << std::endl;
+   endInsertRows();
+}
+
+//rutuja
+void ActiveObjectModel::appendRowBegin() {
+   //Begins a row insertion operation.
+   //When reimplementing insertRows() in a subclass, you must call this
+   //function before inserting data into the model's underlying data store.
+   beginInsertRows(QModelIndex(), rowCount(), rowCount());
+
+}
+
+//rutuja
 int ActiveObjectModel::rowCount(const QModelIndex &) const {
-    /*if(activeObjectCache.size() != 0){
-      //std::cout <<"inside" << std::endl;
-      Segmentation::Object & obj = activeObjectCache.back().get();
-      return obj.subobjects.size();
-
-    }else{
-      std::cout << "j" << std::endl;
-      return activeObjectCache.size();*/
+   return activeObjectCache.size();
 
 }
-
+//rutuja
 void ActiveObjectModel::recreate() {
-    /*activeObjectCache = Segmentation::singleton().touchedObjects();
-    std::cout << "i" << std::endl;
-    if(activeObjectCache.size() != 0){
-      //std::cout <<"inside" << std::endl;
-      Segmentation::Object & obj = activeObjectCache.back().get();
-     // obj.subobjects.size();
 
-    }else{
-
-      //return 0;
-    }*/
-    //activeObjectCache.clear();
-    /*auto  objIndex = Segmentation::singleton().activeIndices.back();
-    auto & obj = Segmentation::singleton().objects.at(objIndex);
-    int elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
-    auto subobjectIt = std::begin(obj.subobjects);
-    for (std::size_t i = 0; i < elemCount; ++i) {
-        activeObjectCache.emplace_back(subobjectIt->get().id) ;
-        std::cout << subobjectIt->get().id << std::endl;
-        subobjectIt = std::next(subobjectIt);
-    }*/
+   beginResetModel();
+   if(activeObjectCache.size() < MAX_SHOWN_SUBOBJECTS){
+     activeObjectCache.push_back(Segmentation::singleton().getCurrentmergeid());
+   }
+   endResetModel();
 
 }
+//rutuja
+QVariant ActiveObjectModel::data(const QModelIndex & index, int role) const {
 
-/*QVariant ActiveObjectModel::data(const QModelIndex & index, int role) const {
-    if (index.isValid()) {
-        //http://coliru.stacked-crooked.com/a/98276b01d551fb41
-        const auto & obj = activeObjectCache[index.row()].get();
-        return objectGet(obj, index, role);
-    }
+   if (index.isValid()) {
+      //http://coliru.stacked-crooked.com/a/98276b01d551fb41
+      uint64_t obj = activeObjectCache[index.row()];
+      //auto & subobj = obj.subobjects.back().get();
+      return objectGet(obj, index, role);
+
+   }
     return QVariant();//return invalid QVariant
-}*/
+}
 
+//rutuja
+QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int role) const  {
 
-/*QVariant ActiveObjectModel::objectGet(const Segmentation::Object &obj, const QModelIndex & index, int role) const {
-    //rutuja - extra column added for the branch on-off functionality
-    if(index.column() == 0 && role == Qt::CheckStateRole){
-        return (obj.on_off ? Qt::Checked : Qt::Unchecked);
-    } else if (index.column() == 1 && (role == Qt::BackgroundRole || role == Qt::DecorationRole)) {
-        const auto color = Segmentation::singleton().colorObjectFromIndex(obj.index);
-        return QColor(std::get<0>(color), std::get<1>(color), std::get<2>(color));
-    } else if (index.column() == 3 && role == Qt::CheckStateRole) {
-        return (obj.immutable ? Qt::Checked : Qt::Unchecked);
-    } else if (role == Qt::DisplayRole || role == Qt::EditRole) {
+   if ((role == Qt::DisplayRole || role == Qt::EditRole)){
         switch (index.column()) {
-        case 2: return static_cast<quint64>(obj.id);
-        case 4: return obj.category;
-        case 5: return obj.comment;
-        case 6: return static_cast<quint64>(obj.subobjects.size());
-        case 7: {
-            QString output;
-            const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
-            auto subobjectIt = std::begin(obj.subobjects);
-            for (std::size_t i = 0; i < elemCount; ++i) {
-                output += QString::number(subobjectIt->get().id) + ", ";
-                subobjectIt = std::next(subobjectIt);
-            }
-            output.chop(2);
-            output += (obj.subobjects.size() > MAX_SHOWN_SUBOBJECTS) ? "…" : "";;
-            return output;
+        case 0: return id;
         }
-        }
-    }
-    return QVariant();//return invalid QVariant
-}*/
+   }
+   return QVariant();//return invalid QVariant
+}
+
+//rutuja
+void ActiveObjectModel::fill_mergelist(const Segmentation::Object &obj){
+
+   const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
+   auto subobjectIt = std::begin(obj.subobjects);
+   uint64_t  output;
+   for (std::size_t i = 0; i < elemCount; ++i) {
+       output = subobjectIt->get().id;
+       activeObjectCache.push_back(output);
+       subobjectIt = std::next(subobjectIt);
+   }
+}
+

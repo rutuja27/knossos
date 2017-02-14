@@ -919,3 +919,12 @@ void Segmentation::change_colors(uint64_t objid)
 
 }
 
+void Segmentation::setCurrentmergeid(uint64_t subobjid)
+{
+   currentmergeid = subobjid;
+}
+
+uint64_t Segmentation::getCurrentmergeid()
+{
+   return currentmergeid;
+}

@@ -122,6 +122,9 @@ public:
     bool hdf5_found = false;
     std::string hdf5 = "";
 
+    //rutuja
+    floatCoordinate superChunkSize;
+
     // With 2^N being the edge length of a datacube in pixels and
     // M being the edge length of a supercube (the set of all
     // simultaneously loaded datacubes) in datacubes:
