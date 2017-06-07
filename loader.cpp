@@ -570,7 +570,8 @@ void Loader::Worker::downloadAndLoadCubes(const unsigned int loadingNr, const Co
             }
         }
         QUrl dcUrl = Dataset::apiSwitch(api, baseUrl, globalCoord, loaderMagnification, state->cubeEdgeLength, type);
-
+        //rutuja
+        state->baseUrl = baseUrl.toString();
         state->protectCube2Pointer.lock();
         const bool cubeNotAlreadyLoaded = Coordinate2BytePtr_hash_get_or_fail(cubeHash, globalCoord.cube(state->cubeEdgeLength, state->magnification)) == nullptr;
         state->protectCube2Pointer.unlock();

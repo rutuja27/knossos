@@ -121,9 +121,11 @@ public:
     //rutuja -hdf5 name
     bool hdf5_found = false;
     std::string hdf5 = "";
-
+    QString segmentation_label_prefix;
+    QString baseUrl;
     //rutuja
-    floatCoordinate superChunkSize;
+    Coordinate superChunkSize= {8,8,4};
+    Coordinate cube_offset;
 
     // With 2^N being the edge length of a datacube in pixels and
     // M being the edge length of a supercube (the set of all

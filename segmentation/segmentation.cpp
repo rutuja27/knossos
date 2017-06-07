@@ -550,9 +550,12 @@ void Segmentation::mergelistSave(QIODevice & file) const {
         stream << obj.id << ' ' << obj.todo << ' ' << obj.immutable;
         for (const auto & subObj : obj.subobjects) {
             stream << ' ' << subObj.get().id;
+            stream << ' ' << superChunkids.at(subObj.get().id).x << ' ' << superChunkids.at(subObj.get().id).y << ' ' << superChunkids.at(subObj.get().id).z;
+
         }
         stream << '\n';
         stream << obj.location.x << ' ' << obj.location.y << ' ' << obj.location.z << ' ';
+
         if (obj.color) {
             stream << std::get<0>(obj.color.get()) << ' ' << std::get<1>(obj.color.get()) << ' ' << std::get<2>(obj.color.get()) << '\n';
         } else {
@@ -597,15 +600,25 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             uint64_t subObjId;
             supervoxel info;
             auto & obj = createObjectFromSubobjectId(initialVolume, location, objId, todo, immutable);
+            //get superchunkid
+            lineStream >> state->viewer->superChunkId.x;
+            lineStream >> state->viewer->superChunkId.y;
+            lineStream >> state->viewer->superChunkId.z;
+            superChunkids.insert(std::make_pair(initialVolume,state->viewer->superChunkId));
             //rutuja- get the initial subobjectid
             info.seed = initialVolume;
             info.objid = obj.id;
-            color = colorObjectFromSubobjectId(subObjId);
+            color = colorObjectFromSubobjectId(initialVolume);
             info.color = color;
             info.show = true;
             state->viewer->supervoxel_info.push_back(info);
             while (lineStream >> subObjId) {
                 newSubObject(obj, subObjId);
+                //get superchunkid
+                lineStream >> state->viewer->superChunkId.x;
+                lineStream >> state->viewer->superChunkId.y;
+                lineStream >> state->viewer->superChunkId.z;
+                superChunkids.insert(std::make_pair(subObjId,state->viewer->superChunkId));
                 //rutuja - get the rest of the subobjectids
                 info.seed = subObjId;
                 info.objid = obj.id;
@@ -616,7 +629,6 @@ void Segmentation::mergelistLoad(QIODevice & file) {
 
             }
             selectObject(obj);
-
             std::sort(std::begin(obj.subobjects), std::end(obj.subobjects));
             changeCategory(obj, category);
             if (customColorValid) {

@@ -21,7 +21,7 @@
  */
 
 #include "network.h"
-
+#include <iostream>
 #include "loader.h"
 #include "stateInfo.h"
 #include "version.h"

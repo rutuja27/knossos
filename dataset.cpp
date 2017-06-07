@@ -26,7 +26,7 @@
 #include "segmentation/segmentation.h"
 #include "skeleton/skeletonizer.h"
 #include "stateInfo.h"
-
+# include <iostream>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -185,7 +185,27 @@ Dataset Dataset::fromLegacyConf(const QUrl & configUrl, QString config) {
         } else if (token == "hdf5"){//rutuja
                     token = tokenList.at(1);
                     info.hdf5 = token.remove('\"');
-
+        }else if(token == "superChunk"){
+            token = tokenList.at(1);
+            if(token == "x") {
+                info.superChunk.x = tokenList.at(2).toFloat();
+            } else if(token == "y") {
+                info.superChunk.y = tokenList.at(2).toFloat();
+            } else if(token == "z") {
+                info.superChunk.z = tokenList.at(2).toFloat();
+            }
+        }else if(token == "cube_offset"){
+            token = tokenList.at(1);
+            if(token == "x") {
+                info.cube_offset.x = tokenList.at(2).toFloat();
+            } else if(token == "y") {
+                info.cube_offset.y = tokenList.at(2).toFloat();
+            } else if(token == "z") {
+                info.cube_offset.z = tokenList.at(2).toFloat();
+            }
+        }else if(token== "segmentation_labels"){
+            token = tokenList.at(1);
+            info.segmentation_labels = token.remove('\"');
         } else {
             qDebug() << "Skipping unknown parameter" << token;
         }
@@ -198,6 +218,7 @@ Dataset Dataset::fromLegacyConf(const QUrl & configUrl, QString config) {
             configDir.cdUp();//support
         }
         info.url = QUrl::fromLocalFile(configDir.absolutePath());
+
     }
 
     //transform boundary and scale of higher mag only datasets
@@ -223,7 +244,9 @@ void Dataset::applyToState() const {
     state->scale = scale;
     state->name = experimentname;
     state->cubeEdgeLength = cubeEdgeLength;
-
+    state->superChunkSize = superChunk;
+    state->cube_offset = cube_offset;
+    state->segmentation_label_prefix = segmentation_labels;
     //rutuja- convert Qstring to std::string for easy enabling of reading hdf5
     std::string stdString = hdf5.toStdString();
     state->hdf5 = stdString;
@@ -241,12 +264,26 @@ QUrl knossosCubeUrl(QUrl base, QString && experimentName, const Coordinate & coo
             .arg(cubeCoord.x, 4, 10, QChar('0'))
             .arg(cubeCoord.y, 4, 10, QChar('0'))
             .arg(cubeCoord.z, 4, 10, QChar('0'));
-    auto filename = QString(("%1_mag%2_x%3_y%4_z%5%6"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
-            .arg(experimentName.section(QString("_mag"), 0, 0))
-            .arg(magnification)
-            .arg(cubeCoord.x, 4, 10, QChar('0'))
-            .arg(cubeCoord.y, 4, 10, QChar('0'))
-            .arg(cubeCoord.z, 4, 10, QChar('0'));
+
+    QString filename;
+    //rutuja - generate selective file names for the raw and segmentation labels
+    if(type == Dataset::CubeType::SEGMENTATION_SZ_ZIP)
+    {
+          filename = QString(("x%3_y%4_z%5%6"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
+                        //.arg(experimentName.section(QString("_mag"), 0, 0))
+                        //.arg(magnification)
+                        .arg(cubeCoord.x, 4, 10, QChar('0'))
+                        .arg(cubeCoord.y, 4, 10, QChar('0'))
+                        .arg(cubeCoord.z, 4, 10, QChar('0'));
+    }else{
+          filename = QString(("%1_mag%2_x%3_y%4_z%5%6"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
+                       .arg(experimentName.section(QString("_mag"), 0, 0))
+                       .arg(magnification)
+                       .arg(cubeCoord.x, 4, 10, QChar('0'))
+                       .arg(cubeCoord.y, 4, 10, QChar('0'))
+                       .arg(cubeCoord.z, 4, 10, QChar('0'));
+    }
+
 
     if (type == Dataset::CubeType::RAW_UNCOMPRESSED) {
         filename = filename.arg(".raw");
@@ -262,8 +299,15 @@ QUrl knossosCubeUrl(QUrl base, QString && experimentName, const Coordinate & coo
         filename = filename.arg(".seg");
     }
 
-    base.setPath(base.path() + pos + filename);
 
+    //rutuja - added selective names for the raw data and labels
+    if(type == Dataset::CubeType::SEGMENTATION_SZ_ZIP){
+        base.setPath(base.path() + pos + state->segmentation_label_prefix + filename);
+    }else{
+        base.setPath(base.path() + pos + filename);
+    }
+
+    //std::cout << qPrintable(base.toString()) << std::endl;
     return base;
 }
 

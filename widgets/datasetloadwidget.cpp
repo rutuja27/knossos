@@ -30,7 +30,7 @@
 #include "segmentation/segmentation.h"
 #include "skeleton/skeletonizer.h"
 #include "viewer.h"
-
+# include <iostream>
 #include <QApplication>
 #include <QComboBox>
 #include <QFileDialog>

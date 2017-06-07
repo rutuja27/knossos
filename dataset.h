@@ -50,6 +50,11 @@ struct Dataset {
     API api;
     Coordinate boundary{0,0,0};
     floatCoordinate scale{0,0,0};
+
+    //rutuja
+    Coordinate superChunk{0,0,0};
+    Coordinate cube_offset;
+
     int magnification{0};
     int lowestAvailableMag{0};
     int highestAvailableMag{0};
@@ -59,7 +64,9 @@ struct Dataset {
     bool overlay{false};
     QString experimentname{};
     QUrl url;
+    //rutuja
     QString hdf5;
+    QString segmentation_labels;
 };
 
 #endif//DATASET_H

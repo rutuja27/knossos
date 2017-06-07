@@ -319,7 +319,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
     const Coordinate areaMaxCoord = {session.movementAreaMax.x,
                                      session.movementAreaMax.y,
                                      session.movementAreaMax.z};
-
+    //std::cout << cubePosInAbsPx.x << " " << cubePosInAbsPx.y << " " << cubePosInAbsPx.z << std::endl;
     const auto partlyInMovementArea =
        areaMinCoord.x > cubePosInAbsPx.x || areaMaxCoord.x < cubePosInAbsPx.x + state->cubeEdgeLength * state->magnification ||
        areaMinCoord.y > cubePosInAbsPx.y || areaMaxCoord.y < cubePosInAbsPx.y + state->cubeEdgeLength * state->magnification ||
@@ -362,52 +362,84 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
 
             if(hide == false) {
                 uint64_t subobjectId = *reinterpret_cast<uint64_t*>(datacube);
-
-                auto color = (subobjectIdCache == subobjectId) ? colorCache : seg.colorObjectFromSubobjectId(subobjectId);
-
-                reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
-                reinterpret_cast<uint8_t*>(slice)[1] = std::get<1>(color);
-                reinterpret_cast<uint8_t*>(slice)[2] = std::get<2>(color);
-                reinterpret_cast<uint8_t*>(slice)[3] = std::get<3>(color);
-
+                Coordinate currentsuperchunkId = calculateSuperChunk(state->viewerState->currentPosition);
+                //std::cout << currentsuperchunkId.x << " " << currentsuperchunkId.y << " " << currentsuperchunkId.z << std::endl;
                 const bool selected = (subobjectIdCache == subobjectId) ? selectedCache : seg.isSubObjectIdSelected(subobjectId);
-                //rutuja - selective branch on-off
-                if(selected)
+                auto color = (subobjectIdCache == subobjectId) ? colorCache : seg.colorObjectFromSubobjectId(subobjectId);
+                /*if(currentsuperchunkId == superChunkId)
                 {
-                   std::unordered_map<uint64_t, Segmentation::SubObject>::iterator it = seg.subobjects.find(subobjectId);
-                   const auto & sub = it->second;
-                   uint64_t id = seg.largestObjectContainingSubobject(sub);
-                   //object of the selected current subobjectid
-                   const auto & obj = seg.objects.at(id);
-                   //curent active object
-                   const auto & objid = seg.activeIndices.back()+1;
+                    current_cube = true;
+                }
+                else if(superChunkId.x == 0 && superChunkId.y == 0&& superChunkId.z ==0){
+                    setSuperChunk(state->viewerState->currentPosition);
+                    current_cube = true;
 
-                   if(!obj.on_off)
-                   {
-                       reinterpret_cast<uint8_t*>(slice)[0] = 0;
-                       reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                       reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                       reinterpret_cast<uint8_t*>(slice)[3] = 0;
+                }else{
+                    Coordinate h;
+                    Coordinate j;
+                    h.x = state->viewerState->currentPosition.x + 128;
+                    h.y = state->viewerState->currentPosition.y + 128;
+                    h.z = state->viewerState->currentPosition.z + 128;
+                    j.x = state->viewerState->currentPosition.x - 128;
+                    j.y = state->viewerState->currentPosition.y - 128;
+                    j.z = state->viewerState->currentPosition.z - 128;
+                    Coordinate temp = calculateSuperChunk(h);
+                    Coordinate temp1 = calculateSuperChunk(j);
+                    if(temp == superChunkId || temp1 == superChunkId)
+                    {
+                        current_cube = true;
+                    }
+                    else{
+                        current_cube = false;
+                    }
+                    //setSuperChunk(state->viewerState->currentPosition);
+                    //current_cube = true;
+
+                }*/
+
+                if(selected)//&& current_cube)
+                {
+
+                   reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
+                   reinterpret_cast<uint8_t*>(slice)[1] = std::get<1>(color);
+                   reinterpret_cast<uint8_t*>(slice)[2] = std::get<2>(color);
+                   reinterpret_cast<uint8_t*>(slice)[3] = std::get<3>(color);
+
+                   //std::cout << currentsuperchunkId.x << currentsuperchunkId.y << currentsuperchunkId.z << std::endl;
+                   //rutuja - selective branch on-off
 
 
-                   }
+                      std::unordered_map<uint64_t, Segmentation::SubObject>::iterator it = seg.subobjects.find(subobjectId);
+                      const auto & sub = it->second;
+                      uint64_t id = seg.largestObjectContainingSubobject(sub);
+                      //object of the selected current subobjectid
+                      const auto & obj = seg.objects.at(id);
+                      //curent active object
+                      const auto & objid = seg.activeIndices.back()+1;
 
-                   else if(obj.id == objid)
-                   {
-                       reinterpret_cast<uint8_t*>(slice)[0] = 255;
-                       reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                       reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                       reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha;
-                       seg.set_active_color();
-                       if(seg.active_index_change)
-                       {
+                      if(!obj.on_off)
+                      {
+                         reinterpret_cast<uint8_t*>(slice)[0] = 0;
+                         reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                         reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                         reinterpret_cast<uint8_t*>(slice)[3] = 0;
+                      }
+                      else if(obj.id == objid)
+                      {
+                         reinterpret_cast<uint8_t*>(slice)[0] = 255;
+                         reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                         reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                         reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha;
+                         seg.set_active_color();
+                         if(seg.active_index_change)
+                         {
 
                            seg.active_index_change = false;
                            seg.change_colors(objid);
 
-                       }
+                         }
+                      }
 
-                   }
                 }
                 //rutuja - color the border red and the only show selected objects in color
                 if(!selected)
@@ -439,7 +471,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                 const bool isNotFirstColumn = counter % state->cubeEdgeLength != 0;
                 const bool isNotLastColumn = (counter + 1) % state->cubeEdgeLength != 0;
 
-                // highlight edges where needed
+               // highlight edges where needed
                 if(seg.hoverVersion) {
                     uint64_t objectId = seg.tryLargestObjectContainingSubobject(subobjectId);
                     if (selected && seg.mouseFocusedObjectId == objectId) {
@@ -464,12 +496,13 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                     if (subobjectId != left || subobjectId != right || subobjectId != top || subobjectId != bottom) {
                         reinterpret_cast<uint8_t*>(slice)[3] = std::min(255, reinterpret_cast<uint8_t*>(slice)[3]*4);
                     }
-                }
+               }
 
-                //fill cache
-                subobjectIdCache = subobjectId;
-                colorCache = color;
-                selectedCache = selected;
+               //fill cache
+               subobjectIdCache = subobjectId;
+               colorCache = color;
+               selectedCache = selected;
+
             }
             ++counter;
             datacube += voxelIncrement;
@@ -480,6 +513,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
         datacube += sliceSubLineIncrement;
         slice -= textRevertToFirstLine;
     }
+
 }
 
 static int texIndex(uint x, uint y, uint colorMultiplicationFactor, viewportTexture *texture) {
@@ -614,6 +648,7 @@ bool Viewer::vpGenerateTexture(ViewportOrtho & vp) {
             }
         }
     }
+
     glBindTexture(GL_TEXTURE_2D, 0);
     return true;
 }
@@ -1339,6 +1374,7 @@ QColor Viewer::getNodeColor(const nodeListElement & node) const {
 
 int Viewer::hdf5_read(supervoxel& x)
 {
+
     auto & skeleton = Skeletonizer::singleton();
     hid_t file_id, dataspace_vertices, dataspace_faces,group_id,dataset_vertices, dataset_faces,
             memspace_vertices, memspace_faces,attr_id, attr_scale, attr_scaleinfo;
@@ -1346,10 +1382,31 @@ int Viewer::hdf5_read(supervoxel& x)
     hsize_t dims_vertices[2];
     hsize_t dims_faces[2];
 
+    //calculate the path for the current superchunk mesh file
+
+    Coordinate superchunk = Segmentation::singleton().superChunkids.at(x.seed);
+    setSuperChunkCoordinate(superchunk);
+    super_start_coord = getSuperChunkCoordinate();
+    std::string baseUrl = state->baseUrl.toLocal8Bit().constData();
+    baseUrl = baseUrl.erase(0,5);
+    std::string dcUrl = QString("/mag%1/x%2/y%3/z%4/")
+            .arg(state->magnification)
+            .arg(super_start_coord.x, 4, 10, QChar('0'))
+            .arg(super_start_coord.y, 4, 10, QChar('0'))
+            .arg(super_start_coord.z, 4, 10, QChar('0')).toLocal8Bit().constData();
+    std::string basePath = baseUrl + dcUrl;
+    // generate the apeend path for the current mesh file
+    std::string preFix = state->hdf5;
+    QString postFix = QString(("x%3_y%4_z%5%6"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
+                          .arg(super_start_coord.x, 4, 10, QChar('0'))
+                          .arg(super_start_coord.y, 4, 10, QChar('0'))
+                          .arg(super_start_coord.z, 4, 10, QChar('0'))
+                          .arg(".h5");
+    std::string appendPath = postFix.toLocal8Bit().constData();
     //Open the HDF5 file and group
 
     try{
-        file_id = H5Fopen(state->hdf5.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        file_id = H5Fopen((basePath+preFix+appendPath).c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     }
     catch (const std::overflow_error& e) {
         // this executes if f() throws std::overflow_error (same type rule)
@@ -1371,9 +1428,9 @@ int Viewer::hdf5_read(supervoxel& x)
 
         return 0;
     }
-
+    //std::cout << "file_id" << file_id << std::endl;
     group_id = H5Gopen(file_id, "/meshes",H5P_DEFAULT);
-
+    //std::cout << "group id" << group_id << std::endl;
     int number_of_zeros = 8;
     int buf[3];
     int number[1];
@@ -1393,7 +1450,6 @@ int Viewer::hdf5_read(supervoxel& x)
 
          std::ostringstream oss;
          oss << x.seed;
-
 
       //Convert the seed to %08d pattern style
          std::string ver_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/vertices";
@@ -1453,7 +1509,58 @@ int Viewer::hdf5_read(supervoxel& x)
            colors.push_back(std::get<2>(x.color));
            colors.push_back(255);
          }
+
           skeleton.addMeshToTree(treeID,verts,normals,indices,colors,GL_TRIANGLES);
        }
     // }
 }
+
+void Viewer::setSuperChunk(Coordinate pos)
+{
+
+   Coordinate superchunk_multiple;
+   pos.x = pos.x/state->cubeEdgeLength;
+   pos.y = pos.y/state->cubeEdgeLength;
+   pos.z = pos.z/state->cubeEdgeLength;
+   //std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
+   superchunk_multiple.x = state->superChunkSize.x;
+   superchunk_multiple.y = state->superChunkSize.y;
+   superchunk_multiple.z = state->superChunkSize.z;
+   superChunkId.x = (pos.x - state->cube_offset.x) / superchunk_multiple.x;
+   superChunkId.y = (pos.y - state->cube_offset.y) / superchunk_multiple.y;
+   superChunkId.z = (pos.z - state->cube_offset.z) / superchunk_multiple.z;
+   //std::cout << pos.x << "  " << pos.y << " " << " " << pos.z << std::endl;
+   //std::cout << superChunkId.x << " " << superChunkId.y << " " << superChunkId.z << std::endl;
+}
+
+Coordinate Viewer::getSuperChunk()
+{
+   return superChunkId;
+}
+
+Coordinate Viewer::calculateSuperChunk(Coordinate current_position)
+{
+    Coordinate superchunk_multiple;
+    Coordinate pos;
+    superchunk_multiple.x = state->superChunkSize.x*state->cubeEdgeLength;
+    superchunk_multiple.y = state->superChunkSize.y*state->cubeEdgeLength;
+    superchunk_multiple.z = state->superChunkSize.z*state->cubeEdgeLength;
+    pos.x = (current_position.x - (state->cube_offset.x*state->cubeEdgeLength)) / superchunk_multiple.x;
+    pos.y = (current_position.y - (state->cube_offset.y*state->cubeEdgeLength)) / superchunk_multiple.y;
+    pos.z = (current_position.z - (state->cube_offset.z*state->cubeEdgeLength)) / superchunk_multiple.z;
+    return pos;
+}
+
+Coordinate Viewer::getSuperChunkCoordinate()
+{
+    return super_start_coord;
+}
+
+void Viewer::setSuperChunkCoordinate(Coordinate chunkId)
+{
+    super_start_coord.x = chunkId.x*state->superChunkSize.x + state->cube_offset.x;
+    super_start_coord.y = chunkId.y*state->superChunkSize.y + state->cube_offset.y;
+    super_start_coord.z = chunkId.z*state->superChunkSize.z + state->cube_offset.z;
+}
+
+

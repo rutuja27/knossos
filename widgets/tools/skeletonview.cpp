@@ -34,6 +34,7 @@
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QRegExpValidator>
+#include <iostream>
 
 template<typename Func>
 void question(QWidget * const parent, Func func, const QString & acceptButtonText, const QString & text, const QString & extraText = "") {

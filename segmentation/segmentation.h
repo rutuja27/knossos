@@ -186,6 +186,7 @@ public:
     uint64_t deleted_cell_id =0;
     hash_list<uint64_t> activeIndices;
     uint64_t currentmergeid = 0;
+    std::unordered_map<uint64_t, Coordinate> superChunkids;
 
     //rutuja
     void branch_onoff(Segmentation::Object & obj);

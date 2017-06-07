@@ -1241,6 +1241,7 @@ treeListElement & Skeletonizer::addTree(boost::optional<decltype(treeListElement
 
     skeletonState.trees.emplace_back(treeID.get(), properties);
     treeListElement & newTree = skeletonState.trees.back();
+
     newTree.iterator = std::prev(std::end(skeletonState.trees));
     state->skeletonState->treesByID.emplace(newTree.treeID, &newTree);
 
@@ -1879,6 +1880,7 @@ void Skeletonizer::loadMesh(QIODevice & file, const boost::optional<decltype(tre
             warning = e.what();
         }
     }
+
     if (warning.isEmpty() == false) {
         QMessageBox msgBox(state->viewer->window);
         msgBox.setIcon(QMessageBox::Warning);
@@ -1918,7 +1920,6 @@ void Skeletonizer::addMeshToTree(boost::optional<decltype(treeListElement::treeI
     auto * tree = treeID ? findTreeByTreeID(treeID.get()) : nullptr;
     if (tree == nullptr) {
         tree = &addTree(treeID);
-
     }
 
     std::vector<int> vertex_face_count(verts.size() / 3);

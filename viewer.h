@@ -210,6 +210,9 @@ public:
 
     //rutuja
     std::vector<supervoxel> supervoxel_info;
+    Coordinate superChunkId = {0,0,0};
+    Coordinate super_start_coord;
+    bool current_cube;
 
     ViewportOrtho *viewportXY, *viewportXZ, *viewportZY;
     ViewportArb *viewportArb;
@@ -225,7 +228,13 @@ public:
     void loadTreeLUT(const QString & path = ":/resources/color_palette/default.json");
     QColor getNodeColor(const nodeListElement & node) const;
     //RUTUJA
-    int  hdf5_read(supervoxel& x);
+    int hdf5_read(supervoxel& x);
+    void setSuperChunk(Coordinate pos);
+    Coordinate getSuperChunk();
+    Coordinate calculateSuperChunk(Coordinate pos);
+    Coordinate getSuperChunkCoordinate();
+    void setSuperChunkCoordinate(Coordinate chunkId);
+
 signals:
     void enabledArbVP(const bool on);
     void changedDefaultVPSizeAndPos();

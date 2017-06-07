@@ -24,6 +24,7 @@
 #include <iostream>
 #include "functions.h"
 #include "gui_wrapper.h"
+#include "coordinate.h"
 #include "scriptengine/scripting.h"
 #include "segmentation/cubeloader.h"
 #include "segmentation/segmentation.h"
@@ -47,7 +48,6 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
     auto & seg = Segmentation::singleton();
     const auto brushCenter = getCoordinateFromOrthogonalClick(event->x(), event->y(), vp);
     const auto subobjectIds = readVoxels(brushCenter, seg.brush.value());
-    int h = 1;
     for (const auto subobjectPair : subobjectIds) {
 
         if (seg.activeObjectsCount() == 1) {//rutuja
@@ -55,6 +55,8 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
             const auto pos = subobjectPair.second;
             auto & subobject = seg.subobjectFromId(soid, pos);
             const auto objectToMergeId = seg.smallestImmutableObjectContainingSubobject(subobject);
+            //rutuja - get superchunkid
+            state->viewer->setSuperChunk(pos);
             // if clicked object is currently selected, an unmerge is requested
             if (seg.isSelected(subobject)) {
                 if (event->modifiers().testFlag(Qt::ShiftModifier)) {
@@ -95,6 +97,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         info.objid = obj.id;
                         info.color = color;
                         info.show = true;
+                        seg.superChunkids.insert(std::make_pair(soid,state->viewer->superChunkId));
                         state->viewer->supervoxel_info.push_back(info);
                         state->viewer->hdf5_read(info);
                         emit seg.beforemerge();
@@ -107,7 +110,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
             }
             seg.touchObjects(soid);
         }
-        h++;
+
     }
 }
 
@@ -404,15 +407,16 @@ void Viewport3D::handleMouseReleaseLeft(const QMouseEvent *event) {
 
 void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
     auto & segmentation = Segmentation::singleton();
-    //sauto & skeleton = Skeletonizer::singleton();
     if (Session::singleton().annotationMode.testFlag(AnnotationMode::ObjectSelection) && mouseEventAtValidDatasetPosition(event)) { // in task mode the object should not be switched
         if (event->pos() == mouseDown) {// mouse click
             const auto clickPos = getCoordinateFromOrthogonalClick(event->x(), event->y(), *this);
             const auto subobjectId = readVoxel(clickPos);
+
             if (subobjectId != segmentation.getBackgroundId() && segmentation.createandselect) {// don’t select the unsegmented area as object
                 auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
                 auto objIndex = segmentation.largestObjectContainingSubobject(subobject);
                 segmentation.createandselect = false;
+                state->viewer->setSuperChunk(clickPos);
 
                 if (!event->modifiers().testFlag(Qt::ControlModifier)) {
                     segmentation.clearActiveSelection();//rutuja
@@ -421,13 +425,16 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color = segmentation.get_active_color();
 
                     if(state->hdf5_found){
+                       std::cout << "clicked" << std::endl;
                        supervoxel info;
                        info.seed = subobjectId;
                        info.objid = object.id;
                        info.color = color;
                        info.show = true;
                        state->viewer->supervoxel_info.push_back(info);
+                       segmentation.superChunkids.insert(std::make_pair(subobjectId,state->viewer->superChunkId));
                        state->viewer->hdf5_read(info);
+
                        // to color all the selected supervoxels by their respective colors once they are not the current active selection
                        segmentation.change_colors(object.id);
                        emit segmentation.beforemerge();
