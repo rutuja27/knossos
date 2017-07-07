@@ -99,6 +99,7 @@ public:
     void insertDatasetRow(const QString & dataset, const int pos);
     void datasetCellChanged(int row, int col);
     QStringList getRecentPathItems();
+    int change_seglevels(int lvl, QSpinBox* x, QSpinBox* y, QSpinBox* z);
 
 signals:
     void updateDatasetCompression();

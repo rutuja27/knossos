@@ -120,9 +120,17 @@ public:
     floatCoordinate scale;
     //rutuja -hdf5 name
     bool hdf5_found = false;
+    bool raw_found = false;
+    bool seg_found = false;
+    bool warn_once = false;
+    bool seg_lvl_changed = false;
     std::string hdf5 = "";
-    QString segmentation_label_prefix;
+    std::string raw_static_label;
+    std::string segmentation_static_label;
+    int segmentation_level=0;
+
     QString baseUrl;
+
     //rutuja
     Coordinate superChunkSize= {8,8,4};
     Coordinate cube_offset;

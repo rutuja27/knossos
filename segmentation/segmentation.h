@@ -187,6 +187,7 @@ public:
     hash_list<uint64_t> activeIndices;
     uint64_t currentmergeid = 0;
     std::unordered_map<uint64_t, Coordinate> superChunkids;
+    std::unordered_map<uint64_t, int> seg_level_list;
 
     //rutuja
     void branch_onoff(Segmentation::Object & obj);
@@ -286,6 +287,7 @@ signals:
     void beforemerge();
     void appendmerge();
     void changeactive();
+    void deleteid();
 public slots:
     void clear();
     void deleteSelectedObjects();

@@ -551,7 +551,7 @@ void Segmentation::mergelistSave(QIODevice & file) const {
         for (const auto & subObj : obj.subobjects) {
             stream << ' ' << subObj.get().id;
             stream << ' ' << superChunkids.at(subObj.get().id).x << ' ' << superChunkids.at(subObj.get().id).y << ' ' << superChunkids.at(subObj.get().id).z;
-
+            stream << ' ' << seg_level_list.at(subObj.get().id);
         }
         stream << '\n';
         stream << obj.location.x << ' ' << obj.location.y << ' ' << obj.location.z << ' ';
@@ -604,7 +604,9 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             lineStream >> state->viewer->superChunkId.x;
             lineStream >> state->viewer->superChunkId.y;
             lineStream >> state->viewer->superChunkId.z;
-            superChunkids.insert(std::make_pair(initialVolume,state->viewer->superChunkId));
+            lineStream >> state->segmentation_level;
+            superChunkids.insert(std::make_pair(initialVolume, state->viewer->superChunkId));
+            seg_level_list.insert(std::make_pair(initialVolume, state->segmentation_level));
             //rutuja- get the initial subobjectid
             info.seed = initialVolume;
             info.objid = obj.id;
@@ -615,10 +617,13 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             while (lineStream >> subObjId) {
                 newSubObject(obj, subObjId);
                 //get superchunkid
+
                 lineStream >> state->viewer->superChunkId.x;
                 lineStream >> state->viewer->superChunkId.y;
                 lineStream >> state->viewer->superChunkId.z;
-                superChunkids.insert(std::make_pair(subObjId,state->viewer->superChunkId));
+                lineStream >> state->segmentation_level;
+                superChunkids.insert(std::make_pair(subObjId, state->viewer->superChunkId));
+                seg_level_list.insert(std::make_pair(subObjId, state->segmentation_level));
                 //rutuja - get the rest of the subobjectids
                 info.seed = subObjId;
                 info.objid = obj.id;
@@ -849,6 +854,7 @@ void Segmentation::cell_delete(){
         i++;
     }
     skeleton.deleteMeshOfTree(segment.deleted_cell_id);
+    emit deleteid();
 }
 
 //rutuja- selectively turn on/off branches of meshes in 3D window
@@ -889,6 +895,7 @@ void Segmentation::branch_delete(){
            i++;
         }
    }
+
 }
 
 //rutuja - get active id color

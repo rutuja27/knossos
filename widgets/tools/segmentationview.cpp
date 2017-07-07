@@ -409,6 +409,11 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
     });
 
+    QObject::connect(&Segmentation::singleton(), &Segmentation::deleteid,[this](){
+        uint64_t id = Segmentation::singleton().deleted_cell_id;
+        activeObjectModel.delete_subObjectID(id);
+    });
+
     //rutuja - this is a signal for changing the current active object
     /*QObject::connect(&Segmentation::singleton(), &Segmentation::appendmerge,[this](){
         activeObjectModel.activeObjectCache.clear();
@@ -573,7 +578,38 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     QObject::connect(touchedObjsTable.selectionModel(), &QItemSelectionModel::selectionChanged, this, &SegmentationView::touchedObjSelectionChanged);
     QObject::connect(&showOnlySelectedChck, &QCheckBox::clicked, &Segmentation::singleton(), &Segmentation::setRenderOnlySelectedObjs);
     //rutuja
-    QObject::connect(&objectCreateButton, &QPushButton::clicked, [](){Segmentation::singleton().createandselect=true;});
+    QObject::connect(&objectCreateButton, &QPushButton::clicked, [](){
+        Segmentation::singleton().createandselect=true;
+        /*if(!(state->raw_found)){
+                    QMessageBox prompt;
+                    prompt.setWindowFlags(Qt::WindowStaysOnTopHint);
+                    prompt.setWindowTitle("Failure to Load Raw data");
+                    prompt.setText("Static Raw label present file missing.");
+                    QPushButton* quit = prompt.addButton("Quit", QMessageBox::YesRole);
+                    prompt.addButton("Cancel", QMessageBox::NoRole);
+                    if(prompt.clickedButton() == quit){
+                        state->mainWindow->close();
+                    }
+                    prompt.exec();
+        }
+
+        if(!(state->seg_found)){
+                    QMessageBox prompt;
+                    prompt.setWindowFlags(Qt::WindowStaysOnTopHint);
+                    prompt.setWindowTitle("Failure to Load Raw data");
+                    prompt.setText("Static Segmentation label present file missing.Quit Application");
+                    QPushButton* quit = prompt.addButton("Quit", QMessageBox::YesRole);
+                    prompt.addButton("Cancel", QMessageBox::NoRole);
+                    if(prompt.clickedButton() == quit){
+                        state->mainWindow->close();
+                    }
+                    prompt.exec();
+
+        }*/
+
+
+
+    });
 
     touchedObjectModel.recreate();
     objectModel.recreate();
@@ -741,7 +777,6 @@ void ActiveObjectModel::appendRow() {
    //Begins a row insertion operation.
    //When reimplementing insertRows() in a subclass,you must call this
    //function before inserting data into the model's underlying data store.
-   //std::cout << "2" << std::endl;
    endInsertRows();
 }
 
@@ -769,6 +804,7 @@ void ActiveObjectModel::recreate() {
    endResetModel();
 
 }
+
 //rutuja
 QVariant ActiveObjectModel::data(const QModelIndex & index, int role) const {
 
@@ -790,6 +826,7 @@ QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int
         case 1: return Segmentation::singleton().superChunkids.at(id).x;
         case 2: return Segmentation::singleton().superChunkids.at(id).y;
         case 3: return Segmentation::singleton().superChunkids.at(id).z;
+        case 4: return Segmentation::singleton().seg_level_list.at(id);
         }
    }
    return QVariant();//return invalid QVariant
@@ -808,3 +845,8 @@ void ActiveObjectModel::fill_mergelist(const Segmentation::Object &obj){
    }
 }
 
+void ActiveObjectModel::delete_subObjectID(uint64_t id){
+
+    activeObjectCache.erase(std::remove(activeObjectCache.begin(),activeObjectCache.end(),id));
+
+}

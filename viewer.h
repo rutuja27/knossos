@@ -234,6 +234,7 @@ public:
     Coordinate calculateSuperChunk(Coordinate pos);
     Coordinate getSuperChunkCoordinate();
     void setSuperChunkCoordinate(Coordinate chunkId);
+    //int change_seglevels(int lvl);
 
 signals:
     void enabledArbVP(const bool on);

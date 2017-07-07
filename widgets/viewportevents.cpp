@@ -55,6 +55,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
             const auto pos = subobjectPair.second;
             auto & subobject = seg.subobjectFromId(soid, pos);
             const auto objectToMergeId = seg.smallestImmutableObjectContainingSubobject(subobject);
+
             //rutuja - get superchunkid
             state->viewer->setSuperChunk(pos);
             // if clicked object is currently selected, an unmerge is requested
@@ -75,6 +76,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                     }
                 }
             } else { // object is not selected, so user wants to merge
+
                 if (!event->modifiers().testFlag(Qt::ShiftModifier)) {
                     if (event->modifiers().testFlag(Qt::ControlModifier)) {
                         seg.selectObjectFromSubObject(subobject, pos);
@@ -89,6 +91,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                 //rutuja - mesh for merging task
                 if(state->hdf5_found)
                 {
+
                         auto objIndex = seg.largestObjectContainingSubobject(subobject);
                         std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>color = seg.get_active_color();
                         auto obj = seg.objects.at(objIndex);
@@ -98,6 +101,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         info.color = color;
                         info.show = true;
                         seg.superChunkids.insert(std::make_pair(soid,state->viewer->superChunkId));
+                        seg.seg_level_list.insert(std::make_pair(soid,state->segmentation_level));
                         state->viewer->supervoxel_info.push_back(info);
                         state->viewer->hdf5_read(info);
                         emit seg.beforemerge();
@@ -108,6 +112,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                 }
 
             }
+
             seg.touchObjects(soid);
         }
 
@@ -425,7 +430,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color = segmentation.get_active_color();
 
                     if(state->hdf5_found){
-                       std::cout << "clicked" << std::endl;
+
                        supervoxel info;
                        info.seed = subobjectId;
                        info.objid = object.id;
@@ -433,6 +438,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                        info.show = true;
                        state->viewer->supervoxel_info.push_back(info);
                        segmentation.superChunkids.insert(std::make_pair(subobjectId,state->viewer->superChunkId));
+                       segmentation.seg_level_list.insert(std::make_pair(subobjectId,state->segmentation_level));
                        state->viewer->hdf5_read(info);
 
                        // to color all the selected supervoxels by their respective colors once they are not the current active selection
@@ -441,6 +447,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                        segmentation.setCurrentmergeid(subobjectId);
                        emit segmentation.appendmerge();
                   }
+
                 }
                 //rutuja - removed this from original code
                 /* } else if (segmentation.isSelected(objIndex)) {// unselect if selected
@@ -465,6 +472,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     segmentation.unselectObject(object);
                     segmentation.remObject(subobjectId,object);
                     segmentation.selectObject(object);
+                    segmentation.seg_level_list.erase(subobjectId);
                     if(state->hdf5_found){
                       segmentation.cell_delete();
                     }
@@ -485,6 +493,7 @@ void ViewportOrtho::handleMouseReleaseRight(const QMouseEvent *event) {
         }
     }
     ViewportBase::handleMouseReleaseRight(event);
+
 }
 
 void ViewportOrtho::handleMouseReleaseMiddle(const QMouseEvent *event) {

@@ -47,6 +47,9 @@ struct Dataset {
     static QUrl apiSwitch(const API api, const QUrl & baseUrl, const Coordinate globalCoord, const int scale, const int cubeedgelength, const CubeType type);
     static bool isOverlay(const CubeType type);
 
+    //rutuja
+    bool fexists(const char *filename);
+
     API api;
     Coordinate boundary{0,0,0};
     floatCoordinate scale{0,0,0};
@@ -65,8 +68,12 @@ struct Dataset {
     QString experimentname{};
     QUrl url;
     //rutuja
+    //mesh file name
     QString hdf5;
-    QString segmentation_labels;
+    // static id to enable loading of multi-level segmented labels
+    QString seg_static_label;
+    //static id to enable loading of multiple raw datasets
+    QString rw_static_label;
 };
 
 #endif//DATASET_H

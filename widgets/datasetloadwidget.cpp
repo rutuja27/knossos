@@ -240,6 +240,7 @@ bool DatasetLoadWidget::loadDataset(const boost::optional<bool> loadOverlay, QUr
     } else if (path.isEmpty()) {//if empty reload previous
         path = datasetUrl;
     }
+
     path.setPath(path.path() + (!path.isLocalFile() ? "/" : ""));// add slash to avoid redirects
     const auto download = Network::singleton().refresh(path);
     if (!download.first) {
@@ -290,6 +291,7 @@ bool DatasetLoadWidget::loadDataset(const boost::optional<bool> loadOverlay, QUr
             return false;
         }
     }
+
     datasetUrl = {path};//remember config url
     Loader::Controller::singleton().suspendLoader();//we change variables the loader uses
     info.applyToState();
@@ -325,6 +327,16 @@ bool DatasetLoadWidget::loadDataset(const boost::optional<bool> loadOverlay, QUr
     state->viewer->updateDatasetMag();
     state->viewer->userMove({0, 0, 0}, USERMOVE_NEUTRAL);
     emit datasetChanged(segmentationOverlayCheckbox.isChecked());
+
+    //rutuja - to warn if static segmentation label is present but file is not present
+    /*if(!(state->seg_found)){
+       QMessageBox prompt;
+       prompt.setWindowFlags(Qt::WindowStaysOnTopHint);
+       prompt.setWindowTitle("Failure to Load Seg data");
+       prompt.setText("Static Segmentation label present file missing");
+       prompt.exec();
+       return false;
+    }*/
 
     return true;
 }
@@ -416,4 +428,23 @@ void DatasetLoadWidget::loadSettings() {
     adaptMemoryConsumption();
     settings.endGroup();
     applyGeometrySettings();
+}
+
+
+int DatasetLoadWidget::change_seglevels(int lvl, QSpinBox* x, QSpinBox* y, QSpinBox* z){
+
+    state->segmentation_level = lvl;
+    emit datasetChanged(segmentationOverlayCheckbox.isChecked());
+    floatCoordinate inputCoord{x->value()-1.0f, y->value()- 1.0f, z->value()-1.0f};
+    //floatCoordinate coordshift_forward{128.0f, 128.0f, 128.0f};
+    //floatCoordinate coordshift_backward{-128.0f, -128.0f, -128.0f};
+    //state->viewer->dc_reslice_notify_visible();
+    //state->viewer->oc_reslice_notify_visible();
+    //state->viewer->loader_notify();
+    //state->loaderUserMoveViewportDirection = coordshift;
+    //state->viewer->userMove(coordshift_forward, USERMOVE_NEUTRAL);
+    //state->viewer->userMove(coordshift_backward, USERMOVE_DRILL);
+    state->mainWindow->widgetContainer.datasetLoadWidget.loadDataset();
+    state->viewer->userMove(inputCoord - state->viewerState->currentPosition, USERMOVE_NEUTRAL);
+    return 0;
 }

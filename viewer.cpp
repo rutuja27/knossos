@@ -128,6 +128,7 @@ void Viewer::loadSettings() {
         mainWindow.viewport(static_cast<ViewportType>(i.toInt()))->raise();
     }
     settings.endGroup();
+
 }
 
 void Viewer::setMovementAreaFactor(float alpha) {
@@ -185,6 +186,7 @@ void Viewer::setMagnificationLock(const bool locked) {
 
 void Viewer::dcSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *slice, ViewportOrtho & vp, bool useCustomLUT) {
     const auto & session = Session::singleton();
+
     const Coordinate areaMinCoord = {session.movementAreaMin.x,
                                      session.movementAreaMin.y,
                                      session.movementAreaMin.z};
@@ -313,6 +315,8 @@ void Viewer::dcSliceExtract(char *datacube, floatCoordinate *currentPxInDc_float
  */
 void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *slice, ViewportOrtho & vp) {
     const auto & session = Session::singleton();
+
+
     const Coordinate areaMinCoord = {session.movementAreaMin.x,
                                      session.movementAreaMin.y,
                                      session.movementAreaMin.z};
@@ -362,6 +366,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
 
             if(hide == false) {
                 uint64_t subobjectId = *reinterpret_cast<uint64_t*>(datacube);
+
                 Coordinate currentsuperchunkId = calculateSuperChunk(state->viewerState->currentPosition);
                 //std::cout << currentsuperchunkId.x << " " << currentsuperchunkId.y << " " << currentsuperchunkId.z << std::endl;
                 const bool selected = (subobjectIdCache == subobjectId) ? selectedCache : seg.isSubObjectIdSelected(subobjectId);
@@ -397,7 +402,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
 
                 }*/
 
-                if(selected)//&& current_cube)
+                if(selected && state->segmentation_level == Segmentation::singleton().seg_level_list.at(subobjectId))
                 {
 
                    reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
@@ -553,6 +558,8 @@ bool Viewer::vpGenerateTexture(ViewportOrtho & vp) {
         qDebug("No such slice view: %d.", vp.viewportType);
         return false;
     }
+
+
 
     const CoordOfCube upperLeftDc = Coordinate(vp.texture.leftUpperPxInAbsPx).cube(state->cubeEdgeLength, state->magnification);
 
@@ -1114,6 +1121,7 @@ void Viewer::userMove(const floatCoordinate & floatStep, UserMoveType userMoveTy
     const Coordinate step(moveCache);
     moveCache -= step;
     userMoveVoxels(step, userMoveType, viewportNormal);
+
 }
 
 void Viewer::userMoveRound(UserMoveType userMoveType, const Coordinate & viewportNormal) {
@@ -1232,12 +1240,14 @@ void Viewer::loader_notify() {
 void Viewer::defaultDatasetLUT() {
     state->viewerState->datasetColortableOn = false;
     datasetColorAdjustmentsChanged();
+
 }
 
 void Viewer::loadDatasetLUT(const QString & path) {
     state->viewerState->datasetColortable = loadLookupTable(path);
     state->viewerState->datasetColortableOn = true;
     datasetColorAdjustmentsChanged();
+
 }
 
 void Viewer::datasetColorAdjustmentsChanged() {
@@ -1385,6 +1395,7 @@ int Viewer::hdf5_read(supervoxel& x)
     //calculate the path for the current superchunk mesh file
 
     Coordinate superchunk = Segmentation::singleton().superChunkids.at(x.seed);
+    int seg_lvl = Segmentation::singleton().seg_level_list.at(x.seed);
     setSuperChunkCoordinate(superchunk);
     super_start_coord = getSuperChunkCoordinate();
     std::string baseUrl = state->baseUrl.toLocal8Bit().constData();
@@ -1396,17 +1407,35 @@ int Viewer::hdf5_read(supervoxel& x)
             .arg(super_start_coord.z, 4, 10, QChar('0')).toLocal8Bit().constData();
     std::string basePath = baseUrl + dcUrl;
     // generate the apeend path for the current mesh file
-    std::string preFix = state->hdf5;
-    QString postFix = QString(("x%3_y%4_z%5%6"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
-                          .arg(super_start_coord.x, 4, 10, QChar('0'))
-                          .arg(super_start_coord.y, 4, 10, QChar('0'))
-                          .arg(super_start_coord.z, 4, 10, QChar('0'))
-                          .arg(".h5");
+    QString postFix;
+    if(!state->segmentation_static_label.empty()){
+        postFix = QString(("%1_mag%2_x%3_y%4_z%5.%6.%7.%8%9"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
+                                  .arg(state->name.section(QString("_mag"), 0, 0))
+                                  .arg(state->magnification)
+                                  .arg(super_start_coord.x, 4, 10, QChar('0'))
+                                  .arg(super_start_coord.y, 4, 10, QChar('0'))
+                                  .arg(super_start_coord.z, 4, 10, QChar('0'))
+                                  .arg(QString::fromStdString(state->segmentation_static_label))
+                                  .arg(seg_lvl)
+                                  .arg(QString::fromStdString(state->hdf5))
+                                  .arg(".h5");
+    }else {
+        postFix = QString(("%1_mag%2_x%3_y%4_z%5.%6.%7.%8%9"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
+                .arg(state->name.section(QString("_mag"), 0, 0))
+                .arg(state->magnification)
+                .arg(super_start_coord.x, 4, 10, QChar('0'))
+                .arg(super_start_coord.y, 4, 10, QChar('0'))
+                .arg(super_start_coord.z, 4, 10, QChar('0'))
+                .arg(QString::fromStdString(state->hdf5))
+                .arg(".h5");
+
+    }
     std::string appendPath = postFix.toLocal8Bit().constData();
+
     //Open the HDF5 file and group
 
     try{
-        file_id = H5Fopen((basePath+preFix+appendPath).c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+        file_id = H5Fopen((basePath+appendPath).c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
     }
     catch (const std::overflow_error& e) {
         // this executes if f() throws std::overflow_error (same type rule)
@@ -1428,91 +1457,92 @@ int Viewer::hdf5_read(supervoxel& x)
 
         return 0;
     }
-    //std::cout << "file_id" << file_id << std::endl;
-    group_id = H5Gopen(file_id, "/meshes",H5P_DEFAULT);
-    //std::cout << "group id" << group_id << std::endl;
-    int number_of_zeros = 8;
-    int buf[3];
-    int number[1];
-    std::string label_0 = "00000000/faces";
-    auto treeID = x.seed;
 
-    QVector<float> verts;
-    QVector<unsigned int> indices;
-    QVector<float> normals;
-    QVector<std::uint8_t> colors;
-    // meshing structures
+    //std::cout << basePath + appendPath << std::endl;
 
-   //for (auto& x: supervoxel_info){
+    if(file_id > 0){
 
-      //auto & x = supervoxel_info.back();
-      if(x.show){
+        group_id = H5Gopen(file_id, std::to_string(seg_lvl).c_str(),H5P_DEFAULT);
 
-         std::ostringstream oss;
-         oss << x.seed;
+        int number_of_zeros = 8;
+        int buf[3];
+        int number[1];
+        std::string label_0 = "00000000/faces";
+        auto treeID = x.seed;
 
-      //Convert the seed to %08d pattern style
-         std::string ver_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/vertices";
-         std::string face_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/faces";
+        QVector<float> verts;
+        QVector<unsigned int> indices;
+        QVector<float> normals;
+        QVector<std::uint8_t> colors;
+        // meshing structures
 
-      // Obtain the points and polys for the seed from the dataset
-         dataset_vertices = H5Dopen(group_id, ver_data.c_str(), H5P_DEFAULT);
-         dataset_faces = H5Dopen(group_id, face_data.c_str(),  H5P_DEFAULT);
-         attr_scale = H5Dopen(group_id, label_0.c_str(),H5P_DEFAULT);
+        if(x.show){
 
-      // Obtain attribute of dataset
-         attr_id = H5Aopen(dataset_vertices,"bounds_beg",H5Dget_access_plist(dataset_vertices));
-         attr_scaleinfo = H5Aopen(attr_scale,"nlabels",H5Dget_access_plist(attr_scale));
+           std::ostringstream oss;
+           oss << x.seed;
 
-         status = H5Aread(attr_id,H5T_NATIVE_INT,buf);
-         status = H5Aread(attr_scaleinfo,H5T_NATIVE_INT,number);
+          //Convert the seed to %08d pattern style
+           std::string ver_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/vertices";
+           std::string face_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/faces";
 
-      // Obtain the dimensions of the points and the polys
-         dataspace_vertices = H5Dget_space(dataset_vertices);
-         dataspace_faces = H5Dget_space(dataset_faces);
+        // Obtain the points and polys for the seed from the dataset
+           dataset_vertices = H5Dopen(group_id, ver_data.c_str(), H5P_DEFAULT);
+           dataset_faces = H5Dopen(group_id, face_data.c_str(),  H5P_DEFAULT);
+           attr_scale = H5Dopen(group_id, label_0.c_str(),H5P_DEFAULT);
 
-         int rank_vertices = H5Sget_simple_extent_ndims(dataspace_vertices);
-         int rank_faces = H5Sget_simple_extent_ndims(dataspace_faces);
-         status = H5Sget_simple_extent_dims(dataspace_vertices, dims_vertices, NULL);
+        // Obtain attribute of dataset
+           attr_id = H5Aopen(dataset_vertices,"bounds_beg",H5Dget_access_plist(dataset_vertices));
+           attr_scaleinfo = H5Aopen(attr_scale,"nlabels",H5Dget_access_plist(attr_scale));
 
-         status = H5Sget_simple_extent_dims(dataspace_faces, dims_faces, NULL);
-         memspace_vertices = H5Screate_simple(rank_vertices,dims_vertices,NULL);
-         memspace_faces = H5Screate_simple(rank_faces,dims_faces,NULL);
+           status = H5Aread(attr_id,H5T_NATIVE_INT,buf);
+           status = H5Aread(attr_scaleinfo,H5T_NATIVE_INT,number);
 
-      // Allocate memory for the reading the points and the polygons
-         int *data_vertices = (int*)std::malloc(sizeof(int)*dims_vertices[1]*dims_vertices[0]);
+        // Obtain the dimensions of the points and the polys
+           dataspace_vertices = H5Dget_space(dataset_vertices);
+           dataspace_faces = H5Dget_space(dataset_faces);
 
-         uint32_t *data_faces = (uint32_t*)std::malloc(sizeof(uint32_t)*dims_faces[1]*dims_faces[0]);
+           int rank_vertices = H5Sget_simple_extent_ndims(dataspace_vertices);
+           int rank_faces = H5Sget_simple_extent_ndims(dataspace_faces);
+           status = H5Sget_simple_extent_dims(dataspace_vertices, dims_vertices, NULL);
 
-      //Read the points and the polygons of the vtkPolyData
-         status = H5Dread(dataset_vertices, H5T_NATIVE_INT, memspace_vertices, dataspace_vertices,
+           status = H5Sget_simple_extent_dims(dataspace_faces, dims_faces, NULL);
+           memspace_vertices = H5Screate_simple(rank_vertices,dims_vertices,NULL);
+           memspace_faces = H5Screate_simple(rank_faces,dims_faces,NULL);
+
+       // Allocate memory for the reading the points and the polygons
+           int *data_vertices = (int*)std::malloc(sizeof(int)*dims_vertices[1]*dims_vertices[0]);
+
+           uint32_t *data_faces = (uint32_t*)std::malloc(sizeof(uint32_t)*dims_faces[1]*dims_faces[0]);
+
+       //Read the points and the polygons of the vtkPolyData
+           status = H5Dread(dataset_vertices, H5T_NATIVE_INT, memspace_vertices, dataspace_vertices,
                      H5P_DEFAULT, data_vertices);
 
-         status = H5Dread(dataset_faces, H5T_NATIVE_INT, memspace_faces, dataspace_faces,
+           status = H5Dread(dataset_faces, H5T_NATIVE_INT, memspace_faces, dataspace_faces,
                      H5P_DEFAULT, data_faces);
 
-         for(uint h = 0; h < dims_vertices[0];h++){
+           for(uint h = 0; h < dims_vertices[0];h++){
 
-           verts.push_back(data_vertices[h*dims_vertices[1]]+ buf[0]);
-           verts.push_back(data_vertices[h*dims_vertices[1]+1] + buf[1]);
-           verts.push_back(data_vertices[h*dims_vertices[1]+2] + buf[2]);
+               verts.push_back(data_vertices[h*dims_vertices[1]]+ buf[0]);
+               verts.push_back(data_vertices[h*dims_vertices[1]+1] + buf[1]);
+               verts.push_back(data_vertices[h*dims_vertices[1]+2] + buf[2]);
 
-         }
+           }
 
-         for(uint h = 0; h < dims_faces[0];h++){
+           for(uint h = 0; h < dims_faces[0];h++){
 
-           indices.push_back(data_faces[h*dims_faces[1]]);
-           indices.push_back(data_faces[h*dims_faces[1]+1]);
-           indices.push_back(data_faces[h*dims_faces[1]+2]);
-           colors.push_back(std::get<0>(x.color));
-           colors.push_back(std::get<1>(x.color));
-           colors.push_back(std::get<2>(x.color));
-           colors.push_back(255);
-         }
+               indices.push_back(data_faces[h*dims_faces[1]]);
+               indices.push_back(data_faces[h*dims_faces[1]+1]);
+               indices.push_back(data_faces[h*dims_faces[1]+2]);
+               colors.push_back(std::get<0>(x.color));
+               colors.push_back(std::get<1>(x.color));
+               colors.push_back(std::get<2>(x.color));
+               colors.push_back(255);
+           }
 
-          skeleton.addMeshToTree(treeID,verts,normals,indices,colors,GL_TRIANGLES);
+           skeleton.addMeshToTree(treeID,verts,normals,indices,colors,GL_TRIANGLES);
        }
-    // }
+    }
 }
 
 void Viewer::setSuperChunk(Coordinate pos)
@@ -1522,15 +1552,14 @@ void Viewer::setSuperChunk(Coordinate pos)
    pos.x = pos.x/state->cubeEdgeLength;
    pos.y = pos.y/state->cubeEdgeLength;
    pos.z = pos.z/state->cubeEdgeLength;
-   //std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
+
    superchunk_multiple.x = state->superChunkSize.x;
    superchunk_multiple.y = state->superChunkSize.y;
    superchunk_multiple.z = state->superChunkSize.z;
    superChunkId.x = (pos.x - state->cube_offset.x) / superchunk_multiple.x;
    superChunkId.y = (pos.y - state->cube_offset.y) / superchunk_multiple.y;
    superChunkId.z = (pos.z - state->cube_offset.z) / superchunk_multiple.z;
-   //std::cout << pos.x << "  " << pos.y << " " << " " << pos.z << std::endl;
-   //std::cout << superChunkId.x << " " << superChunkId.y << " " << superChunkId.z << std::endl;
+
 }
 
 Coordinate Viewer::getSuperChunk()
@@ -1562,5 +1591,6 @@ void Viewer::setSuperChunkCoordinate(Coordinate chunkId)
     super_start_coord.y = chunkId.y*state->superChunkSize.y + state->cube_offset.y;
     super_start_coord.z = chunkId.z*state->superChunkSize.z + state->cube_offset.z;
 }
+
 
 

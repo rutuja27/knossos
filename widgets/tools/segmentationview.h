@@ -96,11 +96,12 @@ public:
     void recreate();
 };
 
+//rutuja
 class ActiveObjectModel: public SegmentationObjectModel {
     Q_OBJECT
     //friend class SegmentationView;
 protected:
-    const std::vector<QString> header = {"ID", "x", "y", "z"};
+    const std::vector<QString> header = {"ID", "x", "y", "z", "segmentation level"};
     const std::size_t MAX_SHOWN_SUBOBJECTS = 10;
 
 public:
@@ -113,6 +114,7 @@ public:
     virtual QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const override;
     QVariant objectGet(uint64_t id, const QModelIndex & index, int role) const;
     void fill_mergelist(const Segmentation::Object &obj);
+    void delete_subObjectID(uint64_t id);
     void recreate();
     void appendRow();
     void appendRowBegin();

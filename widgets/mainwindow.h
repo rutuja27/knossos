@@ -139,7 +139,7 @@ class MainWindow : public QMainWindow {
     virtual void dropEvent(QDropEvent *event) override;
     void resizeToFitViewports(int width, int height);
 
-    QSpinBox *xField, *yField, *zField;
+    QSpinBox *xField, *yField, *zField, *seglvlField;
     QMenu fileMenu{"&File"};
     QMenu *segEditMenu;
     QMenu *skelEditMenu;
@@ -293,6 +293,9 @@ public slots:
     void pythonPluginMgrSlot();
     // dataset load widget
     void updateCompressionRatioDisplay();
+
+    //segmentation labels levels
+    void choose_seg_lvl(QAction *channelAction);
 };
 
 auto createGlobalAction = [](auto key, auto todo){

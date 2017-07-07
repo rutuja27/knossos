@@ -79,6 +79,20 @@ public:
     }
 };
 
+class SegmentSpin : public QSpinBox {
+public:
+    SegmentSpin(const QString & prefix, int & val, MainWindow & mainWindow) : QSpinBox(&mainWindow) {
+        setPrefix(prefix);
+        setRange(0, 4);//allow min 0 as bogus value, we don’t adjust the max anyway
+        if(state->seg_lvl_changed){
+            setValue(state->segmentation_level);//inintialize for {0, 0, 0}
+            state->seg_lvl_changed = false;
+        }else{
+            setValue(0);
+        }
+    }
+};
+
 template<typename Menu, typename Receiver, typename Slot>
 QAction & addApplicationShortcut(Menu & menu, const QIcon & icon, const QString & caption, const Receiver * receiver, const Slot slot, const QKeySequence & keySequence) {
     auto & action = *menu.addAction(icon, caption);
@@ -277,10 +291,12 @@ void MainWindow::createToolbars() {
     xField = new CoordinateSpin("x: ", *this);
     yField = new CoordinateSpin("y: ", *this);
     zField = new CoordinateSpin("z: ", *this);
+    seglvlField = new SegmentSpin("Current Segmentation Level: ", state->segmentation_level, *this);
 
     basicToolbar.addWidget(xField);
     basicToolbar.addWidget(yField);
     basicToolbar.addWidget(zField);
+    basicToolbar.addWidget(seglvlField);
 
     defaultToolbar.setIconSize(QSize(24, 24));
 
@@ -651,6 +667,35 @@ void MainWindow::createMenus() {
     auto & helpMenu = *menuBar()->addMenu("&Help");
     addApplicationShortcut(helpMenu, QIcon(), tr("Documentation … "), this, []() { QDesktopServices::openUrl({MainWindow::docUrl}); }, Qt::Key_F1);
     helpMenu.addAction(QIcon(":/resources/icons/menubar/about.png"), "About", &widgetContainer.aboutDialog, &AboutDialog::show);
+
+    //rutuja - add segmentation level drop down menu on main window
+
+    QSignalMapper* signalMapper = new QSignalMapper (this) ;
+    auto seg_levelMenu = menuBar()->addMenu("&Segmentation Levels");
+    QAction *zero = seg_levelMenu->addAction(tr("0"));
+    QAction *one = seg_levelMenu->addAction(tr("1"));
+    QAction *two = seg_levelMenu->addAction(tr("2"));
+    QAction *three = seg_levelMenu->addAction(tr("3"));
+    QAction *four = seg_levelMenu->addAction(tr("4"));
+    //QAction *crnt_seg_lvl = seg_levelMenu->addAction(tr("Current Segmentation Level"));
+
+    zero->setData("0");
+    one->setData("1");
+    two->setData("2");
+    three->setData("3");
+    four->setData("4");
+
+    connect(seg_levelMenu, SIGNAL(triggered(QAction *)),this, SLOT(choose_seg_lvl(QAction *)), Qt::UniqueConnection);
+    //connect(seg_levelMenu, SIGNAL(triggered(QAction *)), this, SLOT(seglvlField->setValue(state->segmentation_level)));
+    QWidgetAction *widgetAction = new QWidgetAction(this);
+    QLineEdit* seg_level_txtbox = new QLineEdit;
+    seg_level_txtbox->setMaximumWidth(20);
+    //addApplicationShortcut(*seg_levelMenu,"Current Segmentation Level", this, SLOT(state->segmentation_level));
+    //seg_level_txtbox->setText(QString::fromStdString(std::to_string(state->segmentation_level)));
+    //QAction* txt_box = seg_levelMenu->addAction(seg_level_txtbox);
+    //widgetAction->setDefaultWidget(seg_level_txtbox);
+    //seg_levelMenu->addAction(widgetAction);
+
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -1340,6 +1385,7 @@ void MainWindow::pythonFileSlot() {
     QString pyFileName = QFileDialog::getOpenFileName(this, "Select python file", QDir::homePath(), "*.py");
     state->viewerState->renderInterval = FAST;
     state->scripting->runFile(pyFileName);
+
 }
 
 void MainWindow::refreshPluginMenu() {
@@ -1382,6 +1428,7 @@ void MainWindow::refreshPluginMenu() {
 void MainWindow::pythonInterpreterSlot() {
     widgetContainer.pythonInterpreterWidget.show();
     widgetContainer.pythonInterpreterWidget.activateWindow();
+
 }
 
 void MainWindow::pythonPluginMgrSlot() {
@@ -1423,4 +1470,13 @@ bool MainWindow::event(QEvent *event) {
         state->viewer->run();
     }
     return QMainWindow::event(event);
+}
+
+void MainWindow::choose_seg_lvl(QAction *channelAction){
+
+  state->seg_lvl_changed = true;
+  int lvl = channelAction->data().toInt();
+  state->mainWindow->widgetContainer.datasetLoadWidget.change_seglevels(lvl, xField, yField, zField);
+  seglvlField->setValue(lvl);
+
 }

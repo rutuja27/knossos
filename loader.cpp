@@ -248,8 +248,9 @@ void Loader::Worker::allocateOverlayCubes() {
     else{
         state->hdf5_found = true;
     }
-}
 
+
+}
 Loader::Worker::~Worker() {
     abortDownloadsFinishDecompression();
 
@@ -530,6 +531,7 @@ void Loader::Worker::downloadAndLoadCubes(const unsigned int loadingNr, const Co
     }
 
     auto startDownload = [this, center](const Coordinate globalCoord, const Dataset::CubeType type, decltype(dcDownload) & downloads, decltype(dcDecompression) & decompressions, decltype(freeDcSlots) & freeSlots, decltype(state->Dc2Pointer[0]) & cubeHash){
+
         if (Dataset::isOverlay(type)) {
             auto snappyIt = snappyCache[loaderMagnification].find(globalCoord.cube(state->cubeEdgeLength, state->magnification));
             if (snappyIt != std::end(snappyCache[loaderMagnification])) {
@@ -570,6 +572,7 @@ void Loader::Worker::downloadAndLoadCubes(const unsigned int loadingNr, const Co
             }
         }
         QUrl dcUrl = Dataset::apiSwitch(api, baseUrl, globalCoord, loaderMagnification, state->cubeEdgeLength, type);
+
         //rutuja
         state->baseUrl = baseUrl.toString();
         state->protectCube2Pointer.lock();
@@ -602,7 +605,7 @@ void Loader::Worker::downloadAndLoadCubes(const unsigned int loadingNr, const Co
             downloads[globalCoord] = reply;
             broadcastProgress(true);
             QObject::connect(reply, &QNetworkReply::finished, [this, reply, type, globalCoord, center, &downloads, &decompressions, &freeSlots, &cubeHash](){
-                if (freeSlots.empty()) {
+                if(freeSlots.empty()) {
                     qCritical() << "no slots" << static_cast<int>(type) << cubeHash.size() << freeSlots.size();
                     downloads[globalCoord]->deleteLater();
                     downloads.erase(globalCoord);
@@ -661,7 +664,11 @@ void Loader::Worker::downloadAndLoadCubes(const unsigned int loadingNr, const Co
                 }
             });
         }
+
+
+
     };
+
 
     const auto workaroundProcessLocalImmediately = baseUrl.scheme() == "file" ? [](){QCoreApplication::processEvents();} : [](){};
     auto typeDcOverride = state->compressionRatio == 0 ? Dataset::CubeType::RAW_UNCOMPRESSED : typeDc;
@@ -674,4 +681,21 @@ void Loader::Worker::downloadAndLoadCubes(const unsigned int loadingNr, const Co
             workaroundProcessLocalImmediately();//https://bugreports.qt.io/browse/QTBUG-45925
         }
     }
+
+    //added to reload the segmentation cubes when a new segmentation level is selected
+    /*if(state->seg_lvl_changed){
+        Coordinate globalCoord;
+        for (auto && todo : Dcoi) {
+            globalCoord = todo.cube2Global(state->cubeEdgeLength, state->magnification);
+            allCubes.emplace_back(globalCoord);
+            visibleCubes.emplace_back(globalCoord);
+        }
+        for (auto globalCoord : allCubes) {
+
+            startDownload(globalCoord, typeOc, ocDownload, ocDecompression, freeOcSlots, state->Oc2Pointer[loaderMagnification]);
+        }
+    }*/
+
 }
+
+
