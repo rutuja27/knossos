@@ -74,6 +74,8 @@ struct Dataset {
     QString seg_static_label;
     //static id to enable loading of multiple raw datasets
     QString rw_static_label;
+    //Mode of operation
+    int mode;
 };
 
 #endif//DATASET_H

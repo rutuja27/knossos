@@ -217,6 +217,8 @@ Dataset Dataset::fromLegacyConf(const QUrl & configUrl, QString config) {
         }else if(token == "seg_static_label"){
             token = tokenList.at(1);
             info.seg_static_label = token.remove('\"');
+        }else if(token == "mode"){
+            token = tokenList.at(1).toInt();
         }else {
             qDebug() << "Skipping unknown parameter" << token;
         }
@@ -265,6 +267,7 @@ void Dataset::applyToState() const {
     state->segmentation_static_label = seg_static_label.toStdString();
     state->raw_static_label = rw_static_label.toStdString();
     state->compressionRatio = compressionRatio;
+    state->mode = mode;
     Segmentation::enabled = overlay;
 
     Skeletonizer::singleton().skeletonState.volBoundary = SkeletonState{}.volBoundary;

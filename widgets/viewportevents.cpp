@@ -89,7 +89,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                 }
 
                 //rutuja - mesh for merging task
-                if(state->hdf5_found)
+                if(state->hdf5_found && state->mode == 1)
                 {
 
                         auto objIndex = seg.largestObjectContainingSubobject(subobject);
@@ -429,24 +429,24 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     auto object = segmentation.objects.at(objIndex);
                     std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color = segmentation.get_active_color();
 
-                    if(state->hdf5_found){
+                    if(state->hdf5_found && state->mode == 1){
 
-                       supervoxel info;
-                       info.seed = subobjectId;
-                       info.objid = object.id;
-                       info.color = color;
-                       info.show = true;
-                       state->viewer->supervoxel_info.push_back(info);
-                       segmentation.superChunkids.insert(std::make_pair(subobjectId,state->viewer->superChunkId));
-                       segmentation.seg_level_list.insert(std::make_pair(subobjectId,state->segmentation_level));
-                       state->viewer->hdf5_read(info);
+                        supervoxel info;
+                        info.seed = subobjectId;
+                        info.objid = object.id;
+                        info.color = color;
+                        info.show = true;
+                        state->viewer->supervoxel_info.push_back(info);
+                        segmentation.superChunkids.insert(std::make_pair(subobjectId,state->viewer->superChunkId));
+                        segmentation.seg_level_list.insert(std::make_pair(subobjectId,state->segmentation_level));
+                        state->viewer->hdf5_read(info);
 
-                       // to color all the selected supervoxels by their respective colors once they are not the current active selection
-                       segmentation.change_colors(object.id);
-                       emit segmentation.beforemerge();
-                       segmentation.setCurrentmergeid(subobjectId);
-                       emit segmentation.appendmerge();
-                  }
+                        // to color all the selected supervoxels by their respective colors once they are not the current active selection
+                        segmentation.change_colors(object.id);
+                        emit segmentation.beforemerge();
+                        segmentation.setCurrentmergeid(subobjectId);
+                        emit segmentation.appendmerge();
+                    }
 
                 }
                 //rutuja - removed this from original code
@@ -473,12 +473,12 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     segmentation.remObject(subobjectId,object);
                     segmentation.selectObject(object);
                     segmentation.seg_level_list.erase(subobjectId);
-                    if(state->hdf5_found){
+                    if(state->hdf5_found && state->mode == 1){
                       segmentation.cell_delete();
                     }
                 }
 
-              }
+            }
         }
     }
     state->viewer->userMoveClear();//finish dataset drag

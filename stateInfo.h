@@ -118,6 +118,7 @@ public:
 
     // pixel-to-nanometer scale
     floatCoordinate scale;
+
     //rutuja -hdf5 name
     bool hdf5_found = false;
     bool raw_found = false;
@@ -128,6 +129,7 @@ public:
     std::string raw_static_label;
     std::string segmentation_static_label;
     int segmentation_level=0;
+    int mode = true;
 
     QString baseUrl;
 

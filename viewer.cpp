@@ -297,6 +297,7 @@ void Viewer::dcSliceExtract(char *datacube, floatCoordinate *currentPxInDc_float
     }
 }
 
+
 /**
  * @brief Viewer::ocSliceExtract extracts subObject IDs from datacube
  *      and paints slice at the corresponding position with a color depending on the ID.
@@ -401,76 +402,75 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                     //current_cube = true;
 
                 }*/
+                if(state->mode == 1){
+                    if(selected && state->segmentation_level == Segmentation::singleton().seg_level_list.at(subobjectId)){
 
-                if(selected && state->segmentation_level == Segmentation::singleton().seg_level_list.at(subobjectId))
-                {
-
-                   reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
-                   reinterpret_cast<uint8_t*>(slice)[1] = std::get<1>(color);
-                   reinterpret_cast<uint8_t*>(slice)[2] = std::get<2>(color);
-                   reinterpret_cast<uint8_t*>(slice)[3] = std::get<3>(color);
-
-                   //std::cout << currentsuperchunkId.x << currentsuperchunkId.y << currentsuperchunkId.z << std::endl;
-                   //rutuja - selective branch on-off
+                        reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
+                        reinterpret_cast<uint8_t*>(slice)[1] = std::get<1>(color);
+                        reinterpret_cast<uint8_t*>(slice)[2] = std::get<2>(color);
+                        reinterpret_cast<uint8_t*>(slice)[3] = std::get<3>(color);
 
 
-                      std::unordered_map<uint64_t, Segmentation::SubObject>::iterator it = seg.subobjects.find(subobjectId);
-                      const auto & sub = it->second;
-                      uint64_t id = seg.largestObjectContainingSubobject(sub);
-                      //object of the selected current subobjectid
-                      const auto & obj = seg.objects.at(id);
-                      //curent active object
-                      const auto & objid = seg.activeIndices.back()+1;
+                        //rutuja - selective branch on-off
 
-                      if(!obj.on_off)
-                      {
-                         reinterpret_cast<uint8_t*>(slice)[0] = 0;
-                         reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                         reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                         reinterpret_cast<uint8_t*>(slice)[3] = 0;
-                      }
-                      else if(obj.id == objid)
-                      {
-                         reinterpret_cast<uint8_t*>(slice)[0] = 255;
-                         reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                         reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                         reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha;
-                         seg.set_active_color();
-                         if(seg.active_index_change)
-                         {
 
-                           seg.active_index_change = false;
-                           seg.change_colors(objid);
+                        std::unordered_map<uint64_t, Segmentation::SubObject>::iterator it = seg.subobjects.find(subobjectId);
+                        const auto & sub = it->second;
+                        uint64_t id = seg.largestObjectContainingSubobject(sub);
+                        //object of the selected current subobjectid
+                        const auto & obj = seg.objects.at(id);
+                        //curent active object
+                        const auto & objid = seg.activeIndices.back()+1;
 
-                         }
-                      }
+                        if(!obj.on_off){
+                            reinterpret_cast<uint8_t*>(slice)[0] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[3] = 0;
+                        }
+                        else if(obj.id == objid)
+                        {
+                            reinterpret_cast<uint8_t*>(slice)[0] = 255;
+                            reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha;
+                            seg.set_active_color();
+                            if(seg.active_index_change){
 
-                }
-                //rutuja - color the border red and the only show selected objects in color
-                if(!selected)
-                {
+                                seg.active_index_change = false;
+                                seg.change_colors(objid);
 
-                    if(subobjectId == 0)
-                    {
-                        reinterpret_cast<uint8_t*>(slice)[0] = 255;
-                        reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                        reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                        reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha_border;
+                            }
+                        }
 
                     }
-                    else
-                    {
-                        reinterpret_cast<uint8_t*>(slice)[0] = 0;
-                        reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                        reinterpret_cast<uint8_t*>(slice)[2] = 0;
-                        reinterpret_cast<uint8_t*>(slice)[3] = 0;
+                    //rutuja - color the border red and the only show selected objects in color
+                    if(!selected){
+
+                        if(subobjectId == 0){
+
+                            reinterpret_cast<uint8_t*>(slice)[0] = 255;
+                            reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha_border;
+
+                        }else{
+                            reinterpret_cast<uint8_t*>(slice)[0] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[1] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[3] = 0;
+                        }
+
 
                     }
+                }else{
 
+                    reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
+                    reinterpret_cast<uint8_t*>(slice)[1] = std::get<1>(color);
+                    reinterpret_cast<uint8_t*>(slice)[2] = std::get<2>(color);
+                    reinterpret_cast<uint8_t*>(slice)[3] = std::get<3>(color);
 
                 }
-
-
                 const bool isPastFirstRow = counter >= min;
                 const bool isBeforeLastRow = counter < max;
                 const bool isNotFirstColumn = counter % state->cubeEdgeLength != 0;
