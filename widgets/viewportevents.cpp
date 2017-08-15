@@ -369,7 +369,7 @@ void ViewportOrtho::handleMouseMotionMiddleHold(const QMouseEvent *event) {
         Coordinate moveTrunc = arbNodeDragCache;//truncate
         arbNodeDragCache -= moveTrunc;//only keep remaining fraction
         const auto newPos = draggedNode->position - moveTrunc;
-        Skeletonizer::singleton().editNode(0, draggedNode, 0., newPos, state->magnification);
+        Skeletonizer::singleton().editNode(0, draggedNode, 0., newPos, state->magnification, 0);
     }
     ViewportBase::handleMouseMotionMiddleHold(event);
 }
@@ -472,9 +472,10 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     segmentation.unselectObject(object);
                     segmentation.remObject(subobjectId,object);
                     segmentation.selectObject(object);
-                    segmentation.seg_level_list.erase(subobjectId);
+
                     if(state->hdf5_found && state->mode == 1){
-                      segmentation.cell_delete();
+                        segmentation.cell_delete();
+                        segmentation.delete_seg_lvl(subobjectId);
                     }
                 }
 
@@ -530,7 +531,7 @@ void ViewportBase::handleWheelEvent(const QWheelEvent *event) {
             && state->skeletonState->activeNode != nullptr)
     {//change node radius
         float radius = state->skeletonState->activeNode->radius + directionSign * 0.2 * state->skeletonState->activeNode->radius;
-        Skeletonizer::singleton().editNode(0, state->skeletonState->activeNode, radius, state->skeletonState->activeNode->position, state->magnification);;
+        Skeletonizer::singleton().editNode(0, state->skeletonState->activeNode, radius, state->skeletonState->activeNode->position, state->magnification, state->skeletonState->activeNode->synapse_check);;
     } else if (Session::singleton().annotationMode.testFlag(AnnotationMode::Brush) && event->modifiers() == Qt::SHIFT) {
         auto curRadius = seg.brush.getRadius();
         seg.brush.setRadius(std::max(curRadius + (int)((event->delta() / 120) *

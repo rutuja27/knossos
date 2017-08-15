@@ -139,7 +139,8 @@ QVariant NodeModel::data(const QModelIndex &index, int role) const {
         case 3: return node.position.z + 1;
         case 4: return node.radius;
         case 5: return node.getComment();
-        case 6:
+        case 6: return node.synapse_check;//rutuja - added synapse_check
+        case 7:
             auto nodeProperties = propertyStringWithoutComment(node.properties);
             if(node.isSynapticNode) {
                 if(node.correspondingSynapse->getPreSynapse() == &node) {
@@ -162,20 +163,24 @@ bool NodeModel::setData(const QModelIndex & index, const QVariant & value, int r
 
     if (index.column() == 1) {
         const Coordinate position{value.toInt() - 1, node.position.y, node.position.z};
-        Skeletonizer::singleton().editNode(0, &node, node.radius, position, node.createdInMag);
+        Skeletonizer::singleton().editNode(0, &node, node.radius, position, node.createdInMag, node.synapse_check);//rutuja added synapse_check
     } else if (index.column() == 2) {
         const Coordinate position{node.position.x, value.toInt() - 1, node.position.z};
-        Skeletonizer::singleton().editNode(0, &node, node.radius, position, node.createdInMag);
+        Skeletonizer::singleton().editNode(0, &node, node.radius, position, node.createdInMag, node.synapse_check);//rutuja added synapse_check
     } else if (index.column() == 3) {
         const Coordinate position{node.position.x, node.position.y, value.toInt() - 1};
-        Skeletonizer::singleton().editNode(0, &node, node.radius, position, node.createdInMag);
+        Skeletonizer::singleton().editNode(0, &node, node.radius, position, node.createdInMag, node.synapse_check);//rutuja added synapse_check
     } else if (index.column() == 4) {
         const float radius{value.toFloat()};
-        Skeletonizer::singleton().editNode(0, &node, radius, node.position, node.createdInMag);
+        Skeletonizer::singleton().editNode(0, &node, radius, node.position, node.createdInMag, node.synapse_check);//rutuja added synapse_check
     } else if (index.column() == 5) {
         const QString comment{value.toString()};
         Skeletonizer::singleton().setComment(node, comment);
-    } else {
+    }else if(index.column() == 7){
+        const bool syn_chk{value.toBool()};
+        Skeletonizer::singleton().editNode(0, &node, node.radius, node.position, node.createdInMag, syn_chk); //rutuja - added column Synapse check
+
+    }else {
         return false;
     }
     return true;
@@ -523,6 +528,7 @@ SkeletonView::SkeletonView(QWidget * const parent) : QWidget{parent}
 
     QObject::connect(&Skeletonizer::singleton(), &Skeletonizer::branchPoppedSignal, nodeRecreate);
     QObject::connect(&Skeletonizer::singleton(), &Skeletonizer::branchPushedSignal, nodeRecreate);
+    QObject::connect(&Skeletonizer::singleton(), &Skeletonizer::checkSynapse,nodeRecreate);
     QObject::connect(&Skeletonizer::singleton(), &Skeletonizer::nodeSelectionChangedSignal, [this](){
         if (!nodeModel.selectionFromModel) {
             nodeRecreate();// show active node from vp selection
@@ -838,7 +844,7 @@ SkeletonView::SkeletonView(QWidget * const parent) : QWidget{parent}
         if (applied) {
             prevRadius = radius;
             for (auto * node : state->skeletonState->selectedNodes) {
-                Skeletonizer::singleton().editNode(0, node, radius, node->position, node->createdInMag);
+                Skeletonizer::singleton().editNode(0, node, radius, node->position, node->createdInMag, node->synapse_check);//rutuja added synapse_check
             }
         }
     });

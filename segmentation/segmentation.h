@@ -201,6 +201,7 @@ public:
     void change_colors(uint64_t objid);
     void setCurrentmergeid(uint64_t);
     uint64_t getCurrentmergeid();
+    void delete_seg_lvl(uint64_t id);
 
 
     brush_subject brush;

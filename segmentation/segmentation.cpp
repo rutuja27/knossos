@@ -844,17 +844,17 @@ void Segmentation::cell_delete(){
    auto & skeleton = Skeletonizer::singleton();
    //segment.flag_delete_cell = false;
    std::vector<supervoxel>::iterator i = state->viewer->supervoxel_info.begin();
-   while(i != state->viewer->supervoxel_info.end()){
-        if(i->seed == segment.deleted_cell_id){
-          uint64_t objId = i->objid;
-          i = state->viewer->supervoxel_info.erase(i);
 
+   while(i != state->viewer->supervoxel_info.end()){
+
+       if(i->seed == segment.deleted_cell_id){
+          state->viewer->supervoxel_info.erase(i);
           break;
         }
         i++;
     }
     skeleton.deleteMeshOfTree(segment.deleted_cell_id);
-    emit deleteid();
+
 }
 
 //rutuja- selectively turn on/off branches of meshes in 3D window
@@ -899,20 +899,17 @@ void Segmentation::branch_delete(){
 }
 
 //rutuja - get active id color
- std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> Segmentation::get_active_color()
-{
+ std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> Segmentation::get_active_color(){
    return activeid_color;
 }
 
-void Segmentation::set_active_color()
-{
+void Segmentation::set_active_color(){
    activeid_color = {250, 0 ,0 , alpha};
 }
 
 //rutuja - function to dynamicaaly switch colors between current
 //active and non active supervoxels
-void Segmentation::change_colors(uint64_t objid)
-{
+void Segmentation::change_colors(uint64_t objid){
 
     int k = state->viewer->supervoxel_info.size();
     std::tuple<uint8_t,uint8_t,uint8_t,uint8_t> color;
@@ -938,12 +935,15 @@ void Segmentation::change_colors(uint64_t objid)
 
 }
 
-void Segmentation::setCurrentmergeid(uint64_t subobjid)
-{
+void Segmentation::setCurrentmergeid(uint64_t subobjid){
    currentmergeid = subobjid;
 }
 
-uint64_t Segmentation::getCurrentmergeid()
-{
+uint64_t Segmentation::getCurrentmergeid(){
    return currentmergeid;
+}
+
+void Segmentation::delete_seg_lvl(uint64_t id){
+   seg_level_list.erase(id);
+   emit deleteid();
 }

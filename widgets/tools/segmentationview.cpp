@@ -798,9 +798,9 @@ int ActiveObjectModel::rowCount(const QModelIndex &) const {
 void ActiveObjectModel::recreate() {
 
    beginResetModel();
-   if(activeObjectCache.size() < MAX_SHOWN_SUBOBJECTS){
+   //if(activeObjectCache.size() < MAX_SHOWN_SUBOBJECTS){
      activeObjectCache.push_back(Segmentation::singleton().getCurrentmergeid());
-   }
+   //}
    endResetModel();
 
 }
@@ -835,18 +835,18 @@ QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int
 //rutuja
 void ActiveObjectModel::fill_mergelist(const Segmentation::Object &obj){
 
-   const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
-   auto subobjectIt = std::begin(obj.subobjects);
-   uint64_t  output;
-   for (std::size_t i = 0; i < elemCount; ++i) {
-       output = subobjectIt->get().id;
-       activeObjectCache.push_back(output);
-       subobjectIt = std::next(subobjectIt);
-   }
+    const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
+    auto subobjectIt = std::begin(obj.subobjects);
+    uint64_t  output;
+    for (std::size_t i = 0; i < elemCount; ++i) {
+        output = subobjectIt->get().id;
+        activeObjectCache.push_back(output);
+        subobjectIt = std::next(subobjectIt);
+    }
 }
 
 void ActiveObjectModel::delete_subObjectID(uint64_t id){
 
-    activeObjectCache.erase(std::remove(activeObjectCache.begin(),activeObjectCache.end(),id));
+    activeObjectCache.erase(std::remove(activeObjectCache.begin(),activeObjectCache.end(),id),activeObjectCache.end());
 
 }

@@ -607,6 +607,8 @@ void MainWindow::createMenus() {
     }, Qt::Key_S);
     addApplicationShortcut(*viewMenu, QIcon(), tr("Forward-traverse Tree"), &Skeletonizer::singleton(), []() { Skeletonizer::singleton().goToNode(NodeGenerator::Direction::Forward); }, Qt::Key_X);
     addApplicationShortcut(*viewMenu, QIcon(), tr("Backward-traverse Tree"), &Skeletonizer::singleton(), []() { Skeletonizer::singleton().goToNode(NodeGenerator::Direction::Backward); }, Qt::SHIFT + Qt::Key_X);
+    addApplicationShortcut(*viewMenu, QIcon(), tr("ForwardCheck-traverse Tree"), &Skeletonizer::singleton(), []() { Skeletonizer::singleton().goToNodeAndCheck(NodeGenerator::Direction::Forward); }, Qt::Key_A);
+    addApplicationShortcut(*viewMenu, QIcon(), tr("BackwardUnCheck-traverse Tree"), &Skeletonizer::singleton(), []() { Skeletonizer::singleton().goToNodeAndUnCheck(NodeGenerator::Direction::Backward); }, Qt::SHIFT + Qt::Key_A);
     addApplicationShortcut(*viewMenu, QIcon(), tr("Next Node in Table"), this, [this](){widgetContainer.annotationWidget.skeletonTab.jumpToNextNode(true);}, Qt::Key_N);
     addApplicationShortcut(*viewMenu, QIcon(), tr("Previous Node in Table"), this, [this](){widgetContainer.annotationWidget.skeletonTab.jumpToNextNode(false);}, Qt::Key_P);
     addApplicationShortcut(*viewMenu, QIcon(), tr("Next Tree in Table"), this, [this](){widgetContainer.annotationWidget.skeletonTab.jumpToNextTree(true);}, Qt::Key_Z);

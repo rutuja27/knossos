@@ -138,8 +138,8 @@ nodeListElement *SkeletonProxy::node_with_next_id(quint64 node_id, bool same_tre
     return Skeletonizer::singleton().getNodeWithNextID(node, same_tree);
 }
 
-bool SkeletonProxy::edit_node(quint64 node_id, float radius, int x, int y, int z, int in_mag) {
-    if (!Skeletonizer::singleton().editNode(node_id, 0, radius, {x, y, z}, in_mag)) {
+bool SkeletonProxy::edit_node(quint64 node_id, float radius, int x, int y, int z, int in_mag, bool syn_chk) {
+    if (!Skeletonizer::singleton().editNode(node_id, 0, radius, {x, y, z}, in_mag, syn_chk)) { //"syn_chk" - added by rutuja
         emit echo (QString("Skeletonizer::editNode failed!"));
         return false;
     }

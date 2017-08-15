@@ -369,7 +369,6 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                 uint64_t subobjectId = *reinterpret_cast<uint64_t*>(datacube);
 
                 Coordinate currentsuperchunkId = calculateSuperChunk(state->viewerState->currentPosition);
-                //std::cout << currentsuperchunkId.x << " " << currentsuperchunkId.y << " " << currentsuperchunkId.z << std::endl;
                 const bool selected = (subobjectIdCache == subobjectId) ? selectedCache : seg.isSubObjectIdSelected(subobjectId);
                 auto color = (subobjectIdCache == subobjectId) ? colorCache : seg.colorObjectFromSubobjectId(subobjectId);
                 /*if(currentsuperchunkId == superChunkId)
@@ -402,7 +401,9 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                     //current_cube = true;
 
                 }*/
-                if(state->mode == 1){
+
+                if(state->mode == 1)
+                {
                     if(selected && state->segmentation_level == Segmentation::singleton().seg_level_list.at(subobjectId)){
 
                         reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
@@ -1356,6 +1357,9 @@ QColor Viewer::getNodeColor(const nodeListElement & node) const {
     }
     else if (node.isBranchNode) { //branch nodes are always blue
         color = Qt::blue;
+    }
+    else if(node.synapse_check && !node.isBranchNode){// rutuja - change the color of checked nodes to yellow
+        color = Qt::yellow;
     }
     else if (CommentSetting::useCommentNodeColor && node.getComment().isEmpty() == false) {
         color = CommentSetting::getColor(node.getComment());

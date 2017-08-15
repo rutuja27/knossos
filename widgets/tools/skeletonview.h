@@ -79,7 +79,7 @@ signals:
 
 class NodeModel : public AbstractSkeletonModel<NodeModel> {
     friend class AbstractSkeletonModel<NodeModel>;
-    const std::vector<QString> header = {"ID", "x", "y", "z", "Radius", "Comment", "Properties"};
+    const std::vector<QString> header = {"ID", "x", "y", "z", "Radius", "Comment","Synapse Check", "Properties"};
     const std::vector<Qt::ItemFlags> flagModifier = {Qt::ItemIsDragEnabled, Qt::ItemIsEditable, Qt::ItemIsEditable, Qt::ItemIsEditable, Qt::ItemIsEditable, Qt::ItemIsEditable, 0};
 public:
     std::vector<std::reference_wrapper<class nodeListElement>> cache;

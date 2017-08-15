@@ -218,7 +218,8 @@ Dataset Dataset::fromLegacyConf(const QUrl & configUrl, QString config) {
             token = tokenList.at(1);
             info.seg_static_label = token.remove('\"');
         }else if(token == "mode"){
-            token = tokenList.at(1).toInt();
+            info.mode = tokenList.at(1).toInt();
+
         }else {
             qDebug() << "Skipping unknown parameter" << token;
         }

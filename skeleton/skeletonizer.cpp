@@ -56,6 +56,7 @@
 
 template<typename T, typename Func>
 bool connectedComponent(T & node, Func func) {
+
     std::queue<T*> queue;
     std::unordered_set<const T*> visitedNodes;
     visitedNodes.emplace(&node);
@@ -105,7 +106,7 @@ boost::optional<nodeListElement &> Skeletonizer::UI_addSkeletonNode(const Coordi
     if(!state->skeletonState->activeTree) {
         addTree();
     }
-
+    std::cout << "g" << std::endl;
     auto addedNode = addNode(
                           boost::none,
                           state->skeletonState->defaultNodeRadius,
@@ -114,7 +115,7 @@ boost::optional<nodeListElement &> Skeletonizer::UI_addSkeletonNode(const Coordi
                           VPtype,
                           state->magnification,
                           boost::none,
-                          true);
+                          true, false);
     if(!addedNode) {
         qDebug() << "Error: Could not add new node!";
         return boost::none;
@@ -144,7 +145,8 @@ boost::optional<nodeListElement &> Skeletonizer::addSkeletonNodeAndLinkWithActiv
                            VPtype,
                            state->magnification,
                            boost::none,
-                           true);
+                           true,
+                           state->skeletonState->activeNode->synapse_check); //rutuja
     if(!targetNode) {
         qDebug() << "Could not add new node while trying to add node and link with active node!";
         return boost::none;
@@ -292,6 +294,8 @@ void Skeletonizer::saveXmlSkeleton(QIODevice & file) const {
             xml.writeAttribute("inVp", QString::number(node.createdInVp));
             xml.writeAttribute("inMag", QString::number(node.createdInMag));
             xml.writeAttribute("time", QString::number(node.timestamp));
+            std::cout << node.synapse_check << std::endl;
+            xml.writeAttribute("synapse_check", QString::number(node.synapse_check)); //rutuja
             for (auto propertyIt = node.properties.constBegin(); propertyIt != node.properties.constEnd(); ++propertyIt) {
                 xml.writeAttribute(propertyIt.key(), propertyIt.value().toString());
             }
@@ -510,6 +514,8 @@ std::unordered_map<decltype(treeListElement::treeID), std::reference_wrapper<tre
                     }
                 } else if (knownElements.find(xml.name().toString()) == std::end(knownElements)) {// known but unused legacy elements are not reported
                     skippedElements.insert(xml.name().toString());
+                } else if(xml.name() == "synapse_check") {
+                    std::cout << "f" << std::endl;
                 }
                 xml.skipCurrentElement();
             }
@@ -609,6 +615,7 @@ std::unordered_map<decltype(treeListElement::treeID), std::reference_wrapper<tre
                             ViewportType inVP = VIEWPORT_UNDEFINED;
                             int inMag = 0;
                             uint64_t ms = 0;
+                            int syn_chk = false;
                             QVariantHash properties;
                             for (const auto & attribute : xml.attributes()) {
                                 const auto & name = attribute.name();
@@ -629,18 +636,23 @@ std::unordered_map<decltype(treeListElement::treeID), std::reference_wrapper<tre
                                     inMag = {value.toInt()};
                                 } else if (name == "time") {
                                     ms = {value.toULongLong()};
+                                }else if (name == "synapse_check"){
+                                    syn_chk = {value.toInt()}; //rutuja added field syn_chk
+                                    std::cout << syn_chk << std::endl;
                                 } else if (name != "comment") { // comments are added later in the comments section
                                     const auto property = name.toString();
                                     properties.insert(property, value.toString());
                                     textProperties.insert(property);
                                 }
+
                             }
 
                             if (merge) {
-                                auto & noderef = addNode(boost::none, radius, treeID, currentCoordinate, inVP, inMag, ms, false, properties).get();
+                                auto & noderef = addNode(boost::none, radius, treeID, currentCoordinate, inVP, inMag, ms, false, syn_chk, properties).get(); //rutuja added field "syn_chk"
                                 nodeMap.emplace(std::piecewise_construct, std::forward_as_tuple(nodeID.get()), std::forward_as_tuple(noderef));
                             } else {
-                                addNode(nodeID, radius, treeID, currentCoordinate, inVP, inMag, ms, false, properties);
+                                std::cout << syn_chk << std::endl;
+                                addNode(nodeID, radius, treeID, currentCoordinate, inVP, inMag, ms, false, syn_chk, properties);//rutuja added field "syn_chk"
                             }
                         } else {
                             skippedElements.insert(xml.name().toString());
@@ -1029,11 +1041,12 @@ auto findNextAvailableID(const T & lowerBound, const U & map) {
 }
 
 boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<decltype(nodeListElement::nodeID)> nodeId, const decltype(nodeListElement::position) & position, const treeListElement & tree, const decltype(nodeListElement::properties) & properties) {
-    return addNode(nodeId, skeletonState.defaultNodeRadius, tree.treeID, position, ViewportType::VIEWPORT_UNDEFINED, -1, boost::none, false, properties);
+
+    return addNode(nodeId, skeletonState.defaultNodeRadius, tree.treeID, position, ViewportType::VIEWPORT_UNDEFINED, -1, boost::none, false, false, properties);
 }
 
 boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<std::uint64_t> nodeID, const float radius, const decltype(treeListElement::treeID) treeID, const Coordinate & position
-        , const ViewportType VPtype, const int inMag, boost::optional<uint64_t> time, const bool respectLocks, const QHash<QString, QVariant> & properties) {
+        , const ViewportType VPtype, const int inMag, boost::optional<uint64_t> time, const bool respectLocks, const bool syn_chk, const QHash<QString, QVariant> & properties) { //rutuja added "syn_chk"
     state->skeletonState->branchpointUnresolved = false;
 
      // respectLocks refers to locking the position to a specific coordinate such as to
@@ -1071,6 +1084,7 @@ boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<std::ui
 
     tempTree->nodes.emplace_back(nodeID.get(), radius, position, inMag, VPtype, time.get(), properties, *tempTree);
     auto & tempNode = tempTree->nodes.back();
+    tempNode.synapse_check = syn_chk;
     tempNode.iterator = std::prev(std::end(tempTree->nodes));
     updateCircRadius(&tempNode);
     updateSubobjectCountFromProperty(tempNode);
@@ -1334,7 +1348,7 @@ std::list<segmentListElement>::iterator Skeletonizer::findSegmentBetween(nodeLis
     return std::end(sourceNode.segments);
 }
 
-bool Skeletonizer::editNode(std::uint64_t nodeID, nodeListElement *node, float newRadius, const Coordinate & newPos, int inMag) {
+bool Skeletonizer::editNode(std::uint64_t nodeID, nodeListElement *node, float newRadius, const Coordinate & newPos, int inMag, bool syn_chk) { //rutuja added "syn_chk"
     if(!node) {
         node = findNodeByNodeID(nodeID);
     }
@@ -1353,6 +1367,9 @@ bool Skeletonizer::editNode(std::uint64_t nodeID, nodeListElement *node, float n
         updateCircRadius(node);
     }
     node->createdInMag = inMag;
+
+    //rutuja
+    node->synapse_check = syn_chk; //rutuja
 
     Session::singleton().unsavedChanges = true;
 
@@ -1504,7 +1521,8 @@ void Skeletonizer::addSynapseFromNodes(std::vector<nodeListElement *> & nodes) {
               VIEWPORT_UNDEFINED,
               state->magnification,
               boost::none,
-              true);
+              true,
+              state->skeletonState->activeNode->synapse_check); //rutuja
 }
 
 bool Skeletonizer::unlockPosition() {
@@ -1653,22 +1671,27 @@ void Skeletonizer::convertToNumberProperty(const QString & property) {
 }
 
 void Skeletonizer::goToNode(const NodeGenerator::Direction direction) {
+
     if (skeletonState.activeNode == nullptr) {
         return;
     }
     static NodeGenerator traverser(*skeletonState.activeNode, direction);
     static nodeListElement * lastNode = skeletonState.activeNode;
 
+
     if ((lastNode != skeletonState.activeNode) || direction != traverser.direction) {
         traverser = NodeGenerator(*skeletonState.activeNode, direction);
     }
+
     if (traverser.reachedEnd == false) {
         ++traverser;
     } else {
         return;
     }
 
+
     while (traverser.reachedEnd == false) {
+
         if (&(*traverser) != skeletonState.activeNode) {
             setActiveNode(&(*traverser));
             lastNode = &(*traverser);
@@ -1679,7 +1702,85 @@ void Skeletonizer::goToNode(const NodeGenerator::Direction direction) {
         } else {
             return;
         }
+
     }
+
+}
+
+void Skeletonizer::goToNodeAndCheck(const NodeGenerator::Direction direction){
+
+    if (skeletonState.activeNode == nullptr) {
+        return;
+    }
+    static NodeGenerator traverser(*skeletonState.activeNode, direction);
+    static nodeListElement * lastNode = skeletonState.activeNode;
+
+    if ((lastNode != skeletonState.activeNode) || direction != traverser.direction) {
+        traverser = NodeGenerator(*skeletonState.activeNode, direction);
+    }
+
+    if (traverser.reachedEnd == false) {
+        ++traverser;
+    } else {
+        return;
+    }
+
+    skeletonState.activeNode->synapse_check = true;
+    emit(checkSynapse());
+
+    /*while (traverser.reachedEnd == false) {
+        //if (&(*traverser) != skeletonState.activeNode) {
+        if((*traverser).synapse_check == false){// rutuja- condition changed to jump to the next unchecked node.
+            setActiveNode(&(*traverser));
+            lastNode = &(*traverser);
+            state->viewer->setPositionWithRecentering((*traverser).position);
+            (*traverser).synapse_check = true;
+            emit(checkSynapse());
+            return;
+        } else if (traverser.reachedEnd == false) {
+           ++traverser;
+        } else {
+            return;
+        }
+    }*/
+}
+
+void Skeletonizer::goToNodeAndUnCheck(const NodeGenerator::Direction direction){
+
+    if (skeletonState.activeNode == nullptr) {
+        return;
+    }
+    static NodeGenerator traverser(*skeletonState.activeNode, direction);
+    static nodeListElement * lastNode = skeletonState.activeNode;
+
+    if ((lastNode != skeletonState.activeNode) || direction != traverser.direction) {
+        traverser = NodeGenerator(*skeletonState.activeNode, direction);
+    }
+
+    if (traverser.reachedEnd == false) {
+        ++traverser;
+    } else {
+        return;
+    }
+
+    skeletonState.activeNode->synapse_check = false;
+    emit(checkSynapse());
+
+    /*while (traverser.reachedEnd == false) {
+        //if (&(*traverser) != skeletonState.activeNode) {
+        if((*traverser).synapse_check == true){// rutuja- condition changed to jump to the next unchecked node.
+            setActiveNode(&(*traverser));
+            lastNode = &(*traverser);
+            state->viewer->setPositionWithRecentering((*traverser).position);
+            (*traverser).synapse_check = false;
+            emit(checkSynapse());
+            return;
+        } else if (traverser.reachedEnd == false) {
+           ++traverser;
+        } else {
+            return;
+        }
+    }*/
 }
 
 void Skeletonizer::moveSelectedNodesToTree(decltype(treeListElement::treeID) treeID) {

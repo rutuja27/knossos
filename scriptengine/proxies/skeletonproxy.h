@@ -66,7 +66,7 @@ public slots:
     nodeListElement *find_nearby_node_from_tree(quint64 tree_id, int x, int y, int z);
     nodeListElement *node_with_prev_id(quint64 node_id, bool same_tree);
     nodeListElement *node_with_next_id(quint64 node_id, bool same_tree);
-    bool edit_node(quint64 node_id, float radius, int x, int y, int z, int in_mag);
+    bool edit_node(quint64 node_id, float radius, int x, int y, int z, int in_mag, bool syn_chk); //"syn_chk" added by rutuja
     void jump_to_node(nodeListElement *node);
     bool delete_node(quint64 node_id);
     bool set_active_node(quint64 node_id);

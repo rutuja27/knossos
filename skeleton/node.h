@@ -59,6 +59,9 @@ public:
     bool operator==(const nodeListElement & other) const;
 
     QList<segmentListElement *> *getSegments();
+
+    //rutuja- check field added to check for synapse at every node
+    bool synapse_check = false;
 };
 
 class segmentListElement {

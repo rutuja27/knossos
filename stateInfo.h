@@ -129,7 +129,7 @@ public:
     std::string raw_static_label;
     std::string segmentation_static_label;
     int segmentation_level=0;
-    int mode = true;
+    int mode = 0;
 
     QString baseUrl;
 
