@@ -351,6 +351,7 @@ QUrl knossosCubeUrl(QUrl base, QString && experimentName, const Coordinate & coo
 
        base.setPath(base.path() + pos + filename);
        std::string name = base.toString().toStdString();
+
        //replace the start of the network drive path with "\\" to be able to tell if file exists
        if(name.find("file://") == 0){
            name.replace(0,7,"\\\\");
@@ -358,12 +359,12 @@ QUrl knossosCubeUrl(QUrl base, QString && experimentName, const Coordinate & coo
        if (dataset_info.fexists(name.c_str())){
          state->seg_found = true;
        }
-       //std::cout << qPrintable(base.toString()) << std::endl;
 
     } else{ //for raw data
 
        base.setPath(base.path() + pos + filename);
        std::string name = base.toString().toStdString();
+
        //replace the start of the network drive path with "\\" to be able to tell if file exists
        if(name.find("file://") == 0){
            name.replace(0,7,"\\\\");
@@ -372,7 +373,6 @@ QUrl knossosCubeUrl(QUrl base, QString && experimentName, const Coordinate & coo
          state->raw_found = true;
        }
     }
-
 
     return base;
 }

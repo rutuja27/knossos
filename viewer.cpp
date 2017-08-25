@@ -24,6 +24,7 @@
 #include <iostream>
 #include <H5Cpp.h>
 #include <hdf5.h>
+#include <regex>
 #include "file_io.h"
 #include "functions.h"
 #include "segmentation/segmentation.h"
@@ -324,7 +325,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
     const Coordinate areaMaxCoord = {session.movementAreaMax.x,
                                      session.movementAreaMax.y,
                                      session.movementAreaMax.z};
-    //std::cout << cubePosInAbsPx.x << " " << cubePosInAbsPx.y << " " << cubePosInAbsPx.z << std::endl;
+
     const auto partlyInMovementArea =
        areaMinCoord.x > cubePosInAbsPx.x || areaMaxCoord.x < cubePosInAbsPx.x + state->cubeEdgeLength * state->magnification ||
        areaMinCoord.y > cubePosInAbsPx.y || areaMaxCoord.y < cubePosInAbsPx.y + state->cubeEdgeLength * state->magnification ||
@@ -368,7 +369,7 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
             if(hide == false) {
                 uint64_t subobjectId = *reinterpret_cast<uint64_t*>(datacube);
 
-                Coordinate currentsuperchunkId = calculateSuperChunk(state->viewerState->currentPosition);
+                //Coordinate currentsuperchunkId = calculateSuperChunk(state->viewerState->currentPosition);
                 const bool selected = (subobjectIdCache == subobjectId) ? selectedCache : seg.isSubObjectIdSelected(subobjectId);
                 auto color = (subobjectIdCache == subobjectId) ? colorCache : seg.colorObjectFromSubobjectId(subobjectId);
                 /*if(currentsuperchunkId == superChunkId)
@@ -431,9 +432,9 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                         }
                         else if(obj.id == objid)
                         {
-                            reinterpret_cast<uint8_t*>(slice)[0] = 255;
+                            reinterpret_cast<uint8_t*>(slice)[0] = 0;
                             reinterpret_cast<uint8_t*>(slice)[1] = 0;
-                            reinterpret_cast<uint8_t*>(slice)[2] = 0;
+                            reinterpret_cast<uint8_t*>(slice)[2] = 255;
                             reinterpret_cast<uint8_t*>(slice)[3] = Segmentation::singleton().alpha;
                             seg.set_active_color();
                             if(seg.active_index_change){
@@ -1403,12 +1404,24 @@ int Viewer::hdf5_read(supervoxel& x)
     setSuperChunkCoordinate(superchunk);
     super_start_coord = getSuperChunkCoordinate();
     std::string baseUrl = state->baseUrl.toLocal8Bit().constData();
-    baseUrl = baseUrl.erase(0,5);
+
+    //prefixing hacks for different souces
+    std::string prefix_share("file:");
+    std::string prefix_hd("///");
+    if(baseUrl.find(prefix_share) == 0){
+        baseUrl.erase(0,5);
+        if(baseUrl.find(prefix_hd)==0){
+           baseUrl.erase(0,3);
+        }
+    }
+
     std::string dcUrl = QString("/mag%1/x%2/y%3/z%4/")
             .arg(state->magnification)
             .arg(super_start_coord.x, 4, 10, QChar('0'))
             .arg(super_start_coord.y, 4, 10, QChar('0'))
             .arg(super_start_coord.z, 4, 10, QChar('0')).toLocal8Bit().constData();
+
+
     std::string basePath = baseUrl + dcUrl;
     // generate the apeend path for the current mesh file
     QString postFix;
@@ -1435,7 +1448,8 @@ int Viewer::hdf5_read(supervoxel& x)
 
     }
     std::string appendPath = postFix.toLocal8Bit().constData();
-
+    std::cout << basePath+appendPath << std::endl;
+    std::cout << x.seed << std::endl;
     //Open the HDF5 file and group
 
     try{
@@ -1461,8 +1475,6 @@ int Viewer::hdf5_read(supervoxel& x)
 
         return 0;
     }
-
-    //std::cout << basePath + appendPath << std::endl;
 
     if(file_id > 0){
 
@@ -1571,8 +1583,10 @@ Coordinate Viewer::getSuperChunk()
    return superChunkId;
 }
 
+//maybe we do not need this function
 Coordinate Viewer::calculateSuperChunk(Coordinate current_position)
 {
+
     Coordinate superchunk_multiple;
     Coordinate pos;
     superchunk_multiple.x = state->superChunkSize.x*state->cubeEdgeLength;
@@ -1594,6 +1608,7 @@ void Viewer::setSuperChunkCoordinate(Coordinate chunkId)
     super_start_coord.x = chunkId.x*state->superChunkSize.x + state->cube_offset.x;
     super_start_coord.y = chunkId.y*state->superChunkSize.y + state->cube_offset.y;
     super_start_coord.z = chunkId.z*state->superChunkSize.z + state->cube_offset.z;
+
 }
 
 

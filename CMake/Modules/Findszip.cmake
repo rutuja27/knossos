@@ -26,7 +26,8 @@
 
 # causes error if not found
 set (SZIP_FIND_QUIETLY 1)
-set (SZIP_FIND_REQUIRED 1)
+# do not let the error so the msys build still works under windows (how???)
+set (SZIP_FIND_REQUIRED 0)
 
 MACRO (SZIP_ADJUST_LIB_VARS basename)
   if (${basename}_INCLUDE_DIR)

@@ -92,7 +92,7 @@ void annotationFileLoad(const QString & filename, const QString & treeCmtOnMulti
 
         //rutuja - load the meshes from the annotation
         for (auto& x: state->viewer->supervoxel_info){
-            state->viewer->hdf5_read(x);
+            //state->viewer->hdf5_read(x);
         }
 
         //rutuja -original code commented by rutuja as we do not needto generate and depend on ply files

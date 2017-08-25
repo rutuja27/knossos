@@ -550,8 +550,8 @@ void Segmentation::mergelistSave(QIODevice & file) const {
         stream << obj.id << ' ' << obj.todo << ' ' << obj.immutable;
         for (const auto & subObj : obj.subobjects) {
             stream << ' ' << subObj.get().id;
-            stream << ' ' << superChunkids.at(subObj.get().id).x << ' ' << superChunkids.at(subObj.get().id).y << ' ' << superChunkids.at(subObj.get().id).z;
-            stream << ' ' << seg_level_list.at(subObj.get().id);
+            stream << ' ' << superChunkids.at(subObj.get().id).x << ' ' << superChunkids.at(subObj.get().id).y << ' ' << superChunkids.at(subObj.get().id).z;//rutuja
+            stream << ' ' << seg_level_list.at(subObj.get().id);//rutuja
         }
         stream << '\n';
         stream << obj.location.x << ' ' << obj.location.y << ' ' << obj.location.z << ' ';
@@ -714,8 +714,9 @@ void Segmentation::mergeSelectedObjects() {
       while (activeIndices.size() > 1){
         //auto & firstObj = objects[selectedObjectIndices.front()];//front is the merge origin
         //auto & secondObj = objects[selectedObjectIndices.back()];
-          auto & firstObj = objects[activeIndices.front()];//front is the merge origin
-          auto & secondObj = objects[activeIndices.back()];
+          auto & firstObj = objects[activeIndices.front()];// changed selectedObjectIndices to activeIndices - rutuja
+          auto & secondObj = objects[activeIndices.back()];// rutuja
+
         //objects are no longer selected when they got merged
         auto flat_deselect = [this](Object & object){
             object.selected = false;
@@ -799,7 +800,7 @@ void Segmentation::restoreDefaultColorForSelectedObjects() {
     }
 }
 
-//rutuja -- count the num,ber of current active objects
+//rutuja -- count the number of current active objects
 std::size_t Segmentation::activeObjectsCount() const {
     return activeIndices.size();
 }
@@ -904,7 +905,7 @@ void Segmentation::branch_delete(){
 }
 
 void Segmentation::set_active_color(){
-   activeid_color = {250, 0 ,0 , alpha};
+   activeid_color = {0, 0 ,255 , alpha};
 }
 
 //rutuja - function to dynamicaaly switch colors between current
@@ -943,6 +944,7 @@ uint64_t Segmentation::getCurrentmergeid(){
    return currentmergeid;
 }
 
+//rutuja - function to delete the seg level from the segmentation tab
 void Segmentation::delete_seg_lvl(uint64_t id){
    seg_level_list.erase(id);
    emit deleteid();

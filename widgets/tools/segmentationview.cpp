@@ -764,12 +764,15 @@ int ActiveObjectModel::columnCount(const QModelIndex &) const {
 
 //rutuja - to dispaly the header of the active window
 QVariant ActiveObjectModel::headerData(int section, Qt::Orientation orientation, int role) const{
-   if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
-       return header[section];
 
-   } else {
-       return QVariant();//return invalid QVariant
-   }
+    if (orientation == Qt::Horizontal && role == Qt::DisplayRole) {
+
+        return header[section];
+
+    } else {
+
+        return QVariant();//return invalid QVariant
+    }
 }
 
 //rutuja

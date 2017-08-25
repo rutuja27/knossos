@@ -416,6 +416,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
         if (event->pos() == mouseDown) {// mouse click
             const auto clickPos = getCoordinateFromOrthogonalClick(event->x(), event->y(), *this);
             const auto subobjectId = readVoxel(clickPos);
+            std::cout << clickPos.x << " " << clickPos.y << " " << clickPos.z << std::endl;
 
             if (subobjectId != segmentation.getBackgroundId() && segmentation.createandselect) {// don’t select the unsegmented area as object
                 auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);

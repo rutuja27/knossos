@@ -176,7 +176,7 @@ public:
     uint8_t alpha;
     //**rutuja**//
     uint8_t alpha_border;
-    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> activeid_color = {255,0,0,255};
+    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> activeid_color = {0,0,255,255};//active color blue - rutuja
     bool flag_delete = false;
     bool active_index_change = false;
     uint64_t deleted_id = 0;
