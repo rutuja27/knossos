@@ -822,7 +822,7 @@ QVariant ActiveObjectModel::data(const QModelIndex & index, int role) const {
 QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int role) const  {
    if ((role == Qt::DisplayRole || role == Qt::EditRole)){
         switch (index.column()) {
-        case 0: return id;
+        case 0: return QVariant((qulonglong) id);
         case 1: return Segmentation::singleton().superChunkids.at(id).x;
         case 2: return Segmentation::singleton().superChunkids.at(id).y;
         case 3: return Segmentation::singleton().superChunkids.at(id).z;

@@ -65,7 +65,7 @@ find_package(Snappy REQUIRED)
 find_package(Qt5 5.1 REQUIRED COMPONENTS Concurrent Core Gui Help Network Widgets)
 find_package(QuaZip 0.6.2 REQUIRED)
 find_package(szip REQUIRED)
-find_package(hdf5 1.8 REQUIRED)
+find_package(HDF5 1.8 REQUIRED)
 
 if(NOT AUTOGEN)
     qt_wrap_cpp(${PROJECT_NAME} SRC_LIST ${headers} ${headers2})
@@ -122,7 +122,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT DEPLOY)
  message(STATUS "using gold linker")
-    set(LINUXLINKER -fuse-ld=gold>)
+    set(LINUXLINKER -fuse-ld=gold)
 endif()
 
 target_link_libraries(${PROJECT_NAME}

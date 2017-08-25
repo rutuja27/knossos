@@ -31,8 +31,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string>
-#include <windows.h>
-#include "Shlwapi.h"
+//#include <windows.h>
+//#include "Shlwapi.h"
 
 #include <QMessageBox>
 #include <QDir>

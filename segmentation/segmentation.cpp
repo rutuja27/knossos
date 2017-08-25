@@ -27,7 +27,7 @@
 #include "session.h"
 #include "skeleton/skeletonizer.h"
 #include "viewer.h"
-#include "widgets/mainWindow.h"
+//#include "widgets/mainWindow.h"
 #include <QTextStream>
 #include <algorithm>
 #include <fstream>
