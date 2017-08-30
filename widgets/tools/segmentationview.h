@@ -102,7 +102,7 @@ class ActiveObjectModel: public SegmentationObjectModel {
     //friend class SegmentationView;
 protected:
     const std::vector<QString> header = {"ID", "x", "y", "z", "segmentation level"};
-    const std::size_t MAX_SHOWN_SUBOBJECTS = 10;
+    const std::size_t MAX_SHOWN_SUBOBJECTS = 20;
 
 public:
     int number = 0;
@@ -115,6 +115,7 @@ public:
     QVariant objectGet(uint64_t id, const QModelIndex & index, int role) const;
     void fill_mergelist(const Segmentation::Object &obj);
     void delete_subObjectID(uint64_t id);
+    void delete_object();
     void recreate();
     void appendRow();
     void appendRowBegin();

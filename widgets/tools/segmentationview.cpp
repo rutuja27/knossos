@@ -202,7 +202,7 @@ void SegmentationObjectModel::recreate() {
 }
 
 void SegmentationObjectModel::appendRowBegin() {
-    //std::cout << "1" << std::endl;
+
     beginInsertRows(QModelIndex(), rowCount(), rowCount());
 }
 
@@ -211,7 +211,7 @@ void SegmentationObjectModel::popRowBegin() {
 }
 
 void SegmentationObjectModel::appendRow() {
-    //std::cout << "2" << std::endl;
+
     endInsertRows();
 }
 
@@ -401,6 +401,13 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
     });
 
+    // rutuja - this is a signal to delete the current active object
+    QObject::connect(&Segmentation::singleton(), &Segmentation::deleteobject,[this](){
+        activeObjectModel.delete_object();
+        std::cout << "rut" << std::endl;
+
+    });
+
     QObject::connect(&Segmentation::singleton(), &Segmentation::changeactive,[this](){
         activeObjectModel.activeObjectCache.clear();
         auto & obj = Segmentation::singleton().objects[Segmentation::singleton().activeIndices.back()];
@@ -412,14 +419,10 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteid,[this](){
         uint64_t id = Segmentation::singleton().deleted_cell_id;
         activeObjectModel.delete_subObjectID(id);
+
     });
 
-    //rutuja - this is a signal for changing the current active object
-    /*QObject::connect(&Segmentation::singleton(), &Segmentation::appendmerge,[this](){
-        activeObjectModel.activeObjectCache.clear();
 
-
-    });*/
     QObject::connect(&Segmentation::singleton(), &Segmentation::beforeRemoveRow, [this](){
         objectSelectionProtection = true;
         objectModel.popRowBegin();
@@ -705,6 +708,7 @@ void SegmentationView::touchedObjSelectionChanged(const QItemSelection & selecte
 
 void SegmentationView::selectionChanged(const QItemSelection & selected, const QItemSelection & deselected) {
     if (scope s{objectSelectionProtection}) {
+
         const auto & proxySelected = objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource(selected));
         const auto & proxyDeselected = objectProxyModelCategory.mapSelectionToSource(objectProxyModelComment.mapSelectionToSource(deselected));
         commitSelection(proxySelected, proxyDeselected);
@@ -823,6 +827,7 @@ QVariant ActiveObjectModel::data(const QModelIndex & index, int role) const {
 
 //rutuja
 QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int role) const  {
+
    if ((role == Qt::DisplayRole || role == Qt::EditRole)){
         switch (index.column()) {
         case 0: return QVariant((qulonglong) id);
@@ -852,4 +857,12 @@ void ActiveObjectModel::delete_subObjectID(uint64_t id){
 
     activeObjectCache.erase(std::remove(activeObjectCache.begin(),activeObjectCache.end(),id),activeObjectCache.end());
 
+}
+
+void ActiveObjectModel::delete_object(){
+
+    //activeObjectModel.fill_mergelist();
+    //while(activeObjectCache.size() > 5){
+      //  activeObjectCache.pop_back();
+    //}
 }

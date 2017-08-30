@@ -106,7 +106,7 @@ boost::optional<nodeListElement &> Skeletonizer::UI_addSkeletonNode(const Coordi
     if(!state->skeletonState->activeTree) {
         addTree();
     }
-    std::cout << "g" << std::endl;
+
     auto addedNode = addNode(
                           boost::none,
                           state->skeletonState->defaultNodeRadius,
@@ -146,7 +146,8 @@ boost::optional<nodeListElement &> Skeletonizer::addSkeletonNodeAndLinkWithActiv
                            state->magnification,
                            boost::none,
                            true,
-                           state->skeletonState->activeNode->synapse_check); //rutuja
+                           false); //rutuja added "syn_chk"
+
     if(!targetNode) {
         qDebug() << "Could not add new node while trying to add node and link with active node!";
         return boost::none;
@@ -1049,6 +1050,7 @@ boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<std::ui
         , const ViewportType VPtype, const int inMag, boost::optional<uint64_t> time, const bool respectLocks, const bool syn_chk, const QHash<QString, QVariant> & properties) { //rutuja added "syn_chk"
     state->skeletonState->branchpointUnresolved = false;
 
+
      // respectLocks refers to locking the position to a specific coordinate such as to
      // disallow tracing areas further than a certain distance away from a specific point in the
      // dataset.
@@ -1084,7 +1086,13 @@ boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<std::ui
 
     tempTree->nodes.emplace_back(nodeID.get(), radius, position, inMag, VPtype, time.get(), properties, *tempTree);
     auto & tempNode = tempTree->nodes.back();
-    tempNode.synapse_check = syn_chk;
+
+    auto & mode = Session::singleton().annotationMode;
+   //if(mode.testFlag(AnnotationMode::Mode_TracingAdvanced)){
+
+        tempNode.synapse_check = syn_chk;
+
+    //}
     tempNode.iterator = std::prev(std::end(tempTree->nodes));
     updateCircRadius(&tempNode);
     updateSubobjectCountFromProperty(tempNode);
@@ -1725,10 +1733,11 @@ void Skeletonizer::goToNodeAndCheck(const NodeGenerator::Direction direction){
         return;
     }
 
-    skeletonState.activeNode->synapse_check = true;
-    emit(checkSynapse());
+    //skeletonState.activeNode->synapse_check = true;
+    //emit(checkSynapse());
 
-    /*while (traverser.reachedEnd == false) {
+    //comment this if you dont want to jump to next node
+    while (traverser.reachedEnd == false) {
         //if (&(*traverser) != skeletonState.activeNode) {
         if((*traverser).synapse_check == false){// rutuja- condition changed to jump to the next unchecked node.
             setActiveNode(&(*traverser));
@@ -1742,7 +1751,7 @@ void Skeletonizer::goToNodeAndCheck(const NodeGenerator::Direction direction){
         } else {
             return;
         }
-    }*/
+    }
 }
 
 void Skeletonizer::goToNodeAndUnCheck(const NodeGenerator::Direction direction){
@@ -1763,10 +1772,10 @@ void Skeletonizer::goToNodeAndUnCheck(const NodeGenerator::Direction direction){
         return;
     }
 
-    skeletonState.activeNode->synapse_check = false;
-    emit(checkSynapse());
+    //skeletonState.activeNode->synapse_check = false;
+    //emit(checkSynapse());
 
-    /*while (traverser.reachedEnd == false) {
+    while (traverser.reachedEnd == false) {
         //if (&(*traverser) != skeletonState.activeNode) {
         if((*traverser).synapse_check == true){// rutuja- condition changed to jump to the next unchecked node.
             setActiveNode(&(*traverser));
@@ -1780,7 +1789,7 @@ void Skeletonizer::goToNodeAndUnCheck(const NodeGenerator::Direction direction){
         } else {
             return;
         }
-    }*/
+    }
 }
 
 void Skeletonizer::moveSelectedNodesToTree(decltype(treeListElement::treeID) treeID) {
@@ -2021,6 +2030,7 @@ void Skeletonizer::addMeshToTree(boost::optional<decltype(treeListElement::treeI
     auto * tree = treeID ? findTreeByTreeID(treeID.get()) : nullptr;
     if (tree == nullptr) {
         tree = &addTree(treeID);
+
     }
 
     std::vector<int> vertex_face_count(verts.size() / 3);
@@ -2034,6 +2044,7 @@ void Skeletonizer::addMeshToTree(boost::optional<decltype(treeListElement::treeI
 
     // generate normals of indexed vertices
     if(normals.empty() && !indices.empty()) {
+
         normals.resize(verts.size());
         for(int i = 0; i < indices.size()-2; i += 3) {
             QVector3D p1{verts[indices[i]*3]  , verts[indices[i]*3+1]  , verts[indices[i]*3+2]};

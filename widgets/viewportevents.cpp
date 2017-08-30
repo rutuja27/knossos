@@ -58,6 +58,11 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
 
             //rutuja - get superchunkid
             state->viewer->setSuperChunk(pos);
+            std::cout << state->viewer->superChunkId.x << " " << state->viewer->superChunkId.y << " "
+                       << state->viewer->superChunkId.z << std::endl;
+            state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
+            std::cout << state->viewer->super_start_coord.x << " " << state->viewer->super_start_coord.y << " "
+                       << state->viewer->super_start_coord.z << std::endl;
             // if clicked object is currently selected, an unmerge is requested
             if (seg.isSelected(subobject)) {
                 if (event->modifiers().testFlag(Qt::ShiftModifier)) {
@@ -100,7 +105,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         info.objid = obj.id;
                         info.color = color;
                         info.show = true;
-                        seg.superChunkids.insert(std::make_pair(soid,state->viewer->superChunkId));
+                        seg.superChunkids.insert(std::make_pair(soid,state->viewer->super_start_coord));
                         seg.seg_level_list.insert(std::make_pair(soid,state->segmentation_level));
                         state->viewer->supervoxel_info.push_back(info);
                         state->viewer->hdf5_read(info);
@@ -412,18 +417,20 @@ void Viewport3D::handleMouseReleaseLeft(const QMouseEvent *event) {
 
 void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
     auto & segmentation = Segmentation::singleton();
+    std::cout << "aat" << std::endl;
     if (Session::singleton().annotationMode.testFlag(AnnotationMode::ObjectSelection) && mouseEventAtValidDatasetPosition(event)) { // in task mode the object should not be switched
         if (event->pos() == mouseDown) {// mouse click
             const auto clickPos = getCoordinateFromOrthogonalClick(event->x(), event->y(), *this);
             const auto subobjectId = readVoxel(clickPos);
-            std::cout << clickPos.x << " " << clickPos.y << " " << clickPos.z << std::endl;
+
 
             if (subobjectId != segmentation.getBackgroundId() && segmentation.createandselect) {// don’t select the unsegmented area as object
                 auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
                 auto objIndex = segmentation.largestObjectContainingSubobject(subobject);
                 segmentation.createandselect = false;
                 state->viewer->setSuperChunk(clickPos);
-
+                state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
+                //std::cout << state->viewer->super_start_coord.x << std::endl;
                 if (!event->modifiers().testFlag(Qt::ControlModifier)) {
                     segmentation.clearActiveSelection();//rutuja
                     segmentation.selectObject(objIndex);
@@ -438,12 +445,14 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                         info.color = color;
                         info.show = true;
                         state->viewer->supervoxel_info.push_back(info);
-                        segmentation.superChunkids.insert(std::make_pair(subobjectId,state->viewer->superChunkId));
+                        segmentation.superChunkids.insert(std::make_pair(subobjectId,state->viewer->super_start_coord));
                         segmentation.seg_level_list.insert(std::make_pair(subobjectId,state->segmentation_level));
                         state->viewer->hdf5_read(info);
 
                         // to color all the selected supervoxels by their respective colors once they are not the current active selection
                         segmentation.change_colors(object.id);
+
+                        // add subobjects to segmentation tab window - seg lvl and cube positions
                         emit segmentation.beforemerge();
                         segmentation.setCurrentmergeid(subobjectId);
                         emit segmentation.appendmerge();
@@ -475,8 +484,11 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                     segmentation.selectObject(object);
 
                     if(state->hdf5_found && state->mode == 1){
+
                         segmentation.cell_delete();
                         segmentation.delete_seg_lvl(subobjectId);
+
+
                     }
                 }
 

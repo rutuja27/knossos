@@ -27,7 +27,7 @@
 #include "session.h"
 #include "skeleton/skeletonizer.h"
 #include "viewer.h"
-//#include "widgets/mainWindow.h"
+#include <algorithm>
 #include <QTextStream>
 #include <algorithm>
 #include <fstream>
@@ -163,14 +163,23 @@ Segmentation::Object & Segmentation::createObject(Args &&... args) {
 }
 
 void Segmentation::removeObject(Object & object) {
+
     unselectObject(object);
     for (auto & elem : object.subobjects) {
         auto & subobject = elem.get();
         subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), object.index), std::end(subobject.objects));
+        if(flag_delete && !subobject.objects.empty()){
+            //superChunkids.erase(subobject.id);
+            //seg_level_list.erase(subobject.id);
+            deleted_cell_id = subobject.id;
+            emit deleteid();
+
+        }
         if (subobject.objects.empty()) {
             subobjects.erase(subobject.id);
         }
     }
+
     //swap with last, so no intermediate rows need to be deleted
     if (objects.size() > 1 && object.index != objects.back().index) {
         //replace object index in subobjects
@@ -552,6 +561,7 @@ void Segmentation::mergelistSave(QIODevice & file) const {
             stream << ' ' << subObj.get().id;
             stream << ' ' << superChunkids.at(subObj.get().id).x << ' ' << superChunkids.at(subObj.get().id).y << ' ' << superChunkids.at(subObj.get().id).z;//rutuja
             stream << ' ' << seg_level_list.at(subObj.get().id);//rutuja
+
         }
         stream << '\n';
         stream << obj.location.x << ' ' << obj.location.y << ' ' << obj.location.z << ' ';
@@ -589,6 +599,8 @@ void Segmentation::mergelistLoad(QIODevice & file) {
         QString category;
         QString comment;
         std::tuple<uint8_t, uint8_t, uint8_t, uint8_t> color;
+        Coordinate cube_pos;
+        int seg_lvl;
 
         bool valid0 = (lineStream >> objId) && (lineStream >> todo) && (lineStream >> immutable) && (lineStream >> initialVolume);
         bool valid1 = (coordColorLineStream >> location.x) && (coordColorLineStream >> location.y) && (coordColorLineStream >> location.z);
@@ -600,13 +612,15 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             uint64_t subObjId;
             supervoxel info;
             auto & obj = createObjectFromSubobjectId(initialVolume, location, objId, todo, immutable);
+            //state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
             //get superchunkid
-            lineStream >> state->viewer->superChunkId.x;
-            lineStream >> state->viewer->superChunkId.y;
-            lineStream >> state->viewer->superChunkId.z;
-            lineStream >> state->segmentation_level;
-            superChunkids.insert(std::make_pair(initialVolume, state->viewer->superChunkId));
-            seg_level_list.insert(std::make_pair(initialVolume, state->segmentation_level));
+            lineStream >> cube_pos.x;
+            lineStream >> cube_pos.y;
+            lineStream >> cube_pos.z;
+            lineStream >> seg_lvl;
+
+            superChunkids.insert(std::make_pair(initialVolume, cube_pos));
+            seg_level_list.insert(std::make_pair(initialVolume, seg_lvl));
             //rutuja- get the initial subobjectid
             info.seed = initialVolume;
             info.objid = obj.id;
@@ -614,16 +628,17 @@ void Segmentation::mergelistLoad(QIODevice & file) {
             info.color = color;
             info.show = true;
             state->viewer->supervoxel_info.push_back(info);
+
             while (lineStream >> subObjId) {
                 newSubObject(obj, subObjId);
                 //get superchunkid
 
-                lineStream >> state->viewer->superChunkId.x;
-                lineStream >> state->viewer->superChunkId.y;
-                lineStream >> state->viewer->superChunkId.z;
-                lineStream >> state->segmentation_level;
-                superChunkids.insert(std::make_pair(subObjId, state->viewer->superChunkId));
-                seg_level_list.insert(std::make_pair(subObjId, state->segmentation_level));
+                lineStream >> cube_pos.x;
+                lineStream >> cube_pos.y;
+                lineStream >> cube_pos.z;
+                lineStream >> seg_lvl;
+                superChunkids.insert(std::make_pair(subObjId, cube_pos));
+                seg_level_list.insert(std::make_pair(subObjId, seg_lvl));
                 //rutuja - get the rest of the subobjectids
                 info.seed = subObjId;
                 info.objid = obj.id;
@@ -688,13 +703,19 @@ void Segmentation::startJobMode() {
 }
 
 void Segmentation::deleteSelectedObjects() {
-    const auto blockState = blockSignals(true);
+
+    //const auto blockState = blockSignals(true); // uncommenting this gives segfault
+
     while (!activeIndices.empty()) { // changed from selectedObjectindices to activeIndices-rutuja
-        Object Object = objects[activeIndices.back()];
-        deleted_id = Object.id;
-        removeObject(Object);
-        //removeObject(objects[activeIndices.back()]);
+
+        Object obj = objects[activeIndices.back()];
+        deleted_id = obj.id;
+        flag_delete = true;
+        removeObject(objects[activeIndices.back()]);
+        flag_delete = false;
     }
+
+
 
     //added this code to add new active object after the previous is deleted - rutuja
     if(!objects.empty())
@@ -702,10 +723,9 @@ void Segmentation::deleteSelectedObjects() {
       auto & obj = objects.back();
       activeIndices.emplace_back(obj.index);
     }
-     Segmentation::flag_delete = true;
 
-    blockSignals(blockState);
-    emit resetData();
+    //blockSignals(blockState);
+    //emit resetData();
 }
 
 void Segmentation::mergeSelectedObjects() {
@@ -756,6 +776,7 @@ void Segmentation::mergeSelectedObjects() {
             secondObj.todo = false;
             emit changedRow(firstObj.index);
             removeObject(secondObj);
+
         }
     }
     emit todosLeftChanged();

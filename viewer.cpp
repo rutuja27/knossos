@@ -1401,25 +1401,32 @@ int Viewer::hdf5_read(supervoxel& x)
 
     Coordinate superchunk = Segmentation::singleton().superChunkids.at(x.seed);
     int seg_lvl = Segmentation::singleton().seg_level_list.at(x.seed);
-    setSuperChunkCoordinate(superchunk);
-    super_start_coord = getSuperChunkCoordinate();
+
     std::string baseUrl = state->baseUrl.toLocal8Bit().constData();
 
     //prefixing hacks for different souces
-    std::string prefix_share("file:");
-    std::string prefix_hd("///");
-    if(baseUrl.find(prefix_share) == 0){
-        baseUrl.erase(0,5);
-        if(baseUrl.find(prefix_hd)==0){
-           baseUrl.erase(0,3);
+#ifdef Q_OS_WIN32
+        std::string prefix_share("file:");
+        std::string prefix_hd("///");
+        if(baseUrl.find(prefix_share) == 0){
+            baseUrl.erase(0,5);
+            if(baseUrl.find(prefix_hd)==0){
+               baseUrl.erase(0,3);
+            }
         }
-    }
+#else
+        std::string prefix_share("file://");
+        if(baseUrl.find(prefix_share) == 0){
+            baseUrl.erase(0,7);
+
+        }
+#endif
 
     std::string dcUrl = QString("/mag%1/x%2/y%3/z%4/")
             .arg(state->magnification)
-            .arg(super_start_coord.x, 4, 10, QChar('0'))
-            .arg(super_start_coord.y, 4, 10, QChar('0'))
-            .arg(super_start_coord.z, 4, 10, QChar('0')).toLocal8Bit().constData();
+            .arg(superchunk.x, 4, 10, QChar('0'))
+            .arg(superchunk.y, 4, 10, QChar('0'))
+            .arg(superchunk.z, 4, 10, QChar('0')).toLocal8Bit().constData();
 
 
     std::string basePath = baseUrl + dcUrl;
@@ -1429,9 +1436,9 @@ int Viewer::hdf5_read(supervoxel& x)
         postFix = QString(("%1_mag%2_x%3_y%4_z%5.%6.%7.%8%9"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
                                   .arg(state->name.section(QString("_mag"), 0, 0))
                                   .arg(state->magnification)
-                                  .arg(super_start_coord.x, 4, 10, QChar('0'))
-                                  .arg(super_start_coord.y, 4, 10, QChar('0'))
-                                  .arg(super_start_coord.z, 4, 10, QChar('0'))
+                                  .arg(superchunk.x, 4, 10, QChar('0'))
+                                  .arg(superchunk.y, 4, 10, QChar('0'))
+                                  .arg(superchunk.z, 4, 10, QChar('0'))
                                   .arg(QString::fromStdString(state->segmentation_static_label))
                                   .arg(seg_lvl)
                                   .arg(QString::fromStdString(state->hdf5))
@@ -1440,16 +1447,15 @@ int Viewer::hdf5_read(supervoxel& x)
         postFix = QString(("%1_mag%2_x%3_y%4_z%5.%6.%7.%8%9"))//2012-03-07_AreaX14_mag1_x0000_y0000_z0000.j2k
                 .arg(state->name.section(QString("_mag"), 0, 0))
                 .arg(state->magnification)
-                .arg(super_start_coord.x, 4, 10, QChar('0'))
-                .arg(super_start_coord.y, 4, 10, QChar('0'))
-                .arg(super_start_coord.z, 4, 10, QChar('0'))
+                .arg(superchunk.x, 4, 10, QChar('0'))
+                .arg(superchunk.y, 4, 10, QChar('0'))
+                .arg(superchunk.z, 4, 10, QChar('0'))
                 .arg(QString::fromStdString(state->hdf5))
                 .arg(".h5");
 
     }
     std::string appendPath = postFix.toLocal8Bit().constData();
-    std::cout << basePath+appendPath << std::endl;
-    std::cout << x.seed << std::endl;
+
     //Open the HDF5 file and group
 
     try{
@@ -1476,6 +1482,7 @@ int Viewer::hdf5_read(supervoxel& x)
         return 0;
     }
 
+
     if(file_id > 0){
 
         group_id = H5Gopen(file_id, std::to_string(seg_lvl).c_str(),H5P_DEFAULT);
@@ -1494,6 +1501,7 @@ int Viewer::hdf5_read(supervoxel& x)
 
         if(x.show){
 
+
            std::ostringstream oss;
            oss << x.seed;
 
@@ -1501,10 +1509,12 @@ int Viewer::hdf5_read(supervoxel& x)
            std::string ver_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/vertices";
            std::string face_data = std::string(number_of_zeros - oss.str().length(), '0') + oss.str() + "/faces";
 
+
         // Obtain the points and polys for the seed from the dataset
            dataset_vertices = H5Dopen(group_id, ver_data.c_str(), H5P_DEFAULT);
            dataset_faces = H5Dopen(group_id, face_data.c_str(),  H5P_DEFAULT);
            attr_scale = H5Dopen(group_id, label_0.c_str(),H5P_DEFAULT);
+
 
         // Obtain attribute of dataset
            attr_id = H5Aopen(dataset_vertices,"bounds_beg",H5Dget_access_plist(dataset_vertices));
@@ -1517,20 +1527,21 @@ int Viewer::hdf5_read(supervoxel& x)
            dataspace_vertices = H5Dget_space(dataset_vertices);
            dataspace_faces = H5Dget_space(dataset_faces);
 
-           int rank_vertices = H5Sget_simple_extent_ndims(dataspace_vertices);
-           int rank_faces = H5Sget_simple_extent_ndims(dataspace_faces);
+           unsigned int rank_vertices = H5Sget_simple_extent_ndims(dataspace_vertices);
+           unsigned int rank_faces = H5Sget_simple_extent_ndims(dataspace_faces);
            status = H5Sget_simple_extent_dims(dataspace_vertices, dims_vertices, NULL);
 
            status = H5Sget_simple_extent_dims(dataspace_faces, dims_faces, NULL);
            memspace_vertices = H5Screate_simple(rank_vertices,dims_vertices,NULL);
            memspace_faces = H5Screate_simple(rank_faces,dims_faces,NULL);
 
+
        // Allocate memory for the reading the points and the polygons
-           int *data_vertices = (int*)std::malloc(sizeof(int)*dims_vertices[1]*dims_vertices[0]);
+           uint32_t *data_vertices = (uint32_t*)std::malloc(sizeof(uint32_t)*dims_vertices[1]*dims_vertices[0]);
 
            uint32_t *data_faces = (uint32_t*)std::malloc(sizeof(uint32_t)*dims_faces[1]*dims_faces[0]);
 
-       //Read the points and the polygons of the vtkPolyData
+           //Read the points and the polygons of the vtkPolyData
            status = H5Dread(dataset_vertices, H5T_NATIVE_INT, memspace_vertices, dataspace_vertices,
                      H5P_DEFAULT, data_vertices);
 
@@ -1555,6 +1566,7 @@ int Viewer::hdf5_read(supervoxel& x)
                colors.push_back(std::get<2>(x.color));
                colors.push_back(255);
            }
+
 
            skeleton.addMeshToTree(treeID,verts,normals,indices,colors,GL_TRIANGLES);
        }

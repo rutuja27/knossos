@@ -204,6 +204,7 @@ public:
     void delete_seg_lvl(uint64_t id);
 
 
+
     brush_subject brush;
     // for mode in which edges are online highlighted for objects when selected and being hovered over by mouse
     bool hoverVersion{false};
@@ -289,6 +290,7 @@ signals:
     void appendmerge();
     void changeactive();
     void deleteid();
+    void deleteobject();
 public slots:
     void clear();
     void deleteSelectedObjects();
