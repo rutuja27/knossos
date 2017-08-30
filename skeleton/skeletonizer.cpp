@@ -1088,11 +1088,11 @@ boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<std::ui
     auto & tempNode = tempTree->nodes.back();
 
     auto & mode = Session::singleton().annotationMode;
-   //if(mode.testFlag(AnnotationMode::Mode_TracingAdvanced)){
 
-        tempNode.synapse_check = syn_chk;
 
-    //}
+    tempNode.synapse_check = syn_chk;
+
+
     tempNode.iterator = std::prev(std::end(tempTree->nodes));
     updateCircRadius(&tempNode);
     updateSubobjectCountFromProperty(tempNode);
@@ -1727,14 +1727,15 @@ void Skeletonizer::goToNodeAndCheck(const NodeGenerator::Direction direction){
         traverser = NodeGenerator(*skeletonState.activeNode, direction);
     }
 
+
     if (traverser.reachedEnd == false) {
         ++traverser;
     } else {
         return;
     }
 
-    //skeletonState.activeNode->synapse_check = true;
-    //emit(checkSynapse());
+    skeletonState.activeNode->synapse_check = true;
+    emit(checkSynapse());
 
     //comment this if you dont want to jump to next node
     while (traverser.reachedEnd == false) {
@@ -1743,8 +1744,8 @@ void Skeletonizer::goToNodeAndCheck(const NodeGenerator::Direction direction){
             setActiveNode(&(*traverser));
             lastNode = &(*traverser);
             state->viewer->setPositionWithRecentering((*traverser).position);
-            (*traverser).synapse_check = true;
-            emit(checkSynapse());
+            //(*traverser).synapse_check = true;
+            //emit(checkSynapse());
             return;
         } else if (traverser.reachedEnd == false) {
            ++traverser;
@@ -1772,8 +1773,8 @@ void Skeletonizer::goToNodeAndUnCheck(const NodeGenerator::Direction direction){
         return;
     }
 
-    //skeletonState.activeNode->synapse_check = false;
-    //emit(checkSynapse());
+    skeletonState.activeNode->synapse_check = false;
+    emit(checkSynapse());
 
     while (traverser.reachedEnd == false) {
         //if (&(*traverser) != skeletonState.activeNode) {
@@ -1781,8 +1782,8 @@ void Skeletonizer::goToNodeAndUnCheck(const NodeGenerator::Direction direction){
             setActiveNode(&(*traverser));
             lastNode = &(*traverser);
             state->viewer->setPositionWithRecentering((*traverser).position);
-            (*traverser).synapse_check = false;
-            emit(checkSynapse());
+            //(*traverser).synapse_check = false;
+            //emit(checkSynapse());
             return;
         } else if (traverser.reachedEnd == false) {
            ++traverser;
