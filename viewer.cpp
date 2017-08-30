@@ -1569,6 +1569,8 @@ int Viewer::hdf5_read(supervoxel& x)
 
 
            skeleton.addMeshToTree(treeID,verts,normals,indices,colors,GL_TRIANGLES);
+           free(data_vertices);
+           free(data_faces);
        }
     }
 }

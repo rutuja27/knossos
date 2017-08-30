@@ -167,14 +167,20 @@ void Segmentation::removeObject(Object & object) {
     unselectObject(object);
     for (auto & elem : object.subobjects) {
         auto & subobject = elem.get();
-        subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), object.index), std::end(subobject.objects));
-        if(flag_delete && !subobject.objects.empty()){
+
+        if(flag_delete){
+            if(state->mode == 1){ // if we delete a single object it should delete the mesh in 3D window
+                cell_delete();
+            }
             //superChunkids.erase(subobject.id);
             //seg_level_list.erase(subobject.id);
             deleted_cell_id = subobject.id;
-            emit deleteid();
+            //emit deleteid();
 
         }
+        subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), object.index), std::end(subobject.objects));
+        std::cout << flag_delete << std::endl;
+
         if (subobject.objects.empty()) {
             subobjects.erase(subobject.id);
         }
@@ -712,6 +718,7 @@ void Segmentation::deleteSelectedObjects() {
         deleted_id = obj.id;
         flag_delete = true;
         removeObject(objects[activeIndices.back()]);
+        branch_delete();
         flag_delete = false;
     }
 
@@ -875,6 +882,7 @@ void Segmentation::cell_delete(){
         }
         i++;
     }
+    std::cout << "delete" << std::endl;
     skeleton.deleteMeshOfTree(segment.deleted_cell_id);
 
 }
