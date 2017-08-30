@@ -24,9 +24,9 @@
 # made to remove references to Qt and make this file more generally applicable
 #########################################################################
 
-# causes error if not found
-set (SZIP_FIND_QUIETLY 1)
-# do not let the error so the msys build still works under windows (how???)
+# display but do not hard error so the msys build still works under windows (how???)
+# set both to true for hard error if not found.
+set (SZIP_FIND_QUIETLY 0)
 set (SZIP_FIND_REQUIRED 0)
 
 MACRO (SZIP_ADJUST_LIB_VARS basename)
