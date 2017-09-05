@@ -136,7 +136,6 @@ QVariant SegmentationObjectModel::data(const QModelIndex & index, int role) cons
 }
 
 bool SegmentationObjectModel::objectSet(Segmentation::Object & obj, const QModelIndex & index, const QVariant & value, int role) {
-    std::cout << "sg" << std::endl;
     if (index.column() == 3 && role == Qt::CheckStateRole) {
         QMessageBox prompt;
         prompt.setWindowFlags(Qt::WindowStaysOnTopHint);
@@ -405,6 +404,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     // rutuja - this is a signal to delete the current active object
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteobject,[this](){
         activeObjectModel.delete_object();
+        //std::cout << "rut" << std::endl;
 
     });
 
@@ -465,7 +465,6 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     });
     QObject::connect(&Segmentation::singleton(), &Segmentation::changedRowSelection, [this](int index){
         if (scope s{objectSelectionProtection}) {
-            std::cout << "fe" << std::endl;
             const auto & proxyIndex = objectProxyModelComment.mapFromSource(objectProxyModelCategory.mapFromSource(objectModel.index(index, 0)));
             //selection lookup is way cheaper than reselection (sadly)
             const bool alreadySelected = objectsTable.selectionModel()->isSelected(proxyIndex);

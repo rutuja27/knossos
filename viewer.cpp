@@ -405,7 +405,6 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
 
                 if(state->mode == 1)
                 {
-
                     if(selected && state->segmentation_level == Segmentation::singleton().seg_level_list.at(subobjectId)){
 
                         reinterpret_cast<uint8_t*>(slice)[0] = std::get<0>(color);
@@ -1390,7 +1389,6 @@ QColor Viewer::getNodeColor(const nodeListElement & node) const {
 
 int Viewer::hdf5_read(supervoxel& x)
 {
-
 
     auto & skeleton = Skeletonizer::singleton();
     hid_t file_id, dataspace_vertices, dataspace_faces,group_id,dataset_vertices, dataset_faces,

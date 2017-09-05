@@ -48,7 +48,6 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
     auto & seg = Segmentation::singleton();
     const auto brushCenter = getCoordinateFromOrthogonalClick(event->x(), event->y(), vp);
     const auto subobjectIds = readVoxels(brushCenter, seg.brush.value());
-    std::cout.setf(std::ios::unitbuf);
     for (const auto subobjectPair : subobjectIds) {
 
 
@@ -60,25 +59,19 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
 
             //rutuja - get superchunkid
             state->viewer->setSuperChunk(pos);
-
+            //std::cout << state->viewer->superChunkId.x << " " << state->viewer->superChunkId.y << " "
+            //           << state->viewer->superChunkId.z << std::endl;
             state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
-
+            //std::cout << state->viewer->super_start_coord.x << " " << state->viewer->super_start_coord.y << " "
+            //           << state->viewer->super_start_coord.z << std::endl;
             // if clicked object is currently selected, an unmerge is requested
             /*
             if (seg.isSelected(subobject)) {
-
-            state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
-
-            // if clicked object is currently selected, an unmerge is requested
-            /*if (seg.isSelected(subobject)) {
-
                 if (event->modifiers().testFlag(Qt::ShiftModifier)) {
                     if (event->modifiers().testFlag(Qt::ControlModifier)) {
-
                         seg.selectObjectFromSubObject(subobject, pos);
                         seg.unmergeSelectedObjects(pos);
                     } else {
-
                         if(seg.isSelected(objectToMergeId)) { // if no other object to unmerge, just unmerge subobject
                             seg.selectObjectFromSubObject(subobject, pos);
                         }
@@ -92,27 +85,24 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
             } else { // object is not selected, so user wants to merge
             */
 
+            // do a merge if object is not currently selected
+            if (!seg.isSelected(subobject)) {
                 if (!event->modifiers().testFlag(Qt::ShiftModifier)) {
                     if (event->modifiers().testFlag(Qt::ControlModifier)) {
-
                         seg.selectObjectFromSubObject(subobject, pos);
                     } else {
-
                         seg.selectObject(objectToMergeId);//select largest object
                     }
                 }
                 if (seg.activeObjectsCount() >= 2) {//rutuja
-
-                        seg.mergeSelectedObjects();
+                    seg.mergeSelectedObjects();
                 }
 
-
                 //rutuja - mesh for merging task
-                if(state->hdf5_found && state->mode == 1 )
+                if(state->hdf5_found && state->mode == 1)
                 {
 
                         auto objIndex = seg.largestObjectContainingSubobject(subobject);
-                        //seg.draw_mesh(soid,objIndex);
                         std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>color = seg.get_active_color();
                         auto obj = seg.objects.at(objIndex);
                         supervoxel info;
@@ -129,9 +119,9 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                         emit seg.merge();
 
 
-                 }
+                }
 
-
+            }
 
             seg.touchObjects(soid);
         }
@@ -220,9 +210,9 @@ void ViewportOrtho::handleMouseButtonRight(const QMouseEvent *event) {
     if (annotationMode.testFlag(AnnotationMode::Brush)) {
         Segmentation::singleton().brush.setInverse(event->modifiers().testFlag(Qt::ShiftModifier));
         segmentation_brush_work(event, *this);
-
         return;
     }
+
     if (!mouseEventAtValidDatasetPosition(event)) { //don’t place nodes outside movement area
         return;
     }
@@ -445,7 +435,7 @@ void ViewportOrtho::handleMouseReleaseLeft(const QMouseEvent *event) {
                 segmentation.createandselect = false;
                 state->viewer->setSuperChunk(clickPos);
                 state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
-
+                //std::cout << state->viewer->super_start_coord.x << std::endl;
                 if (!event->modifiers().testFlag(Qt::ControlModifier)) {
                     segmentation.clearActiveSelection();//rutuja
                     segmentation.selectObject(objIndex);

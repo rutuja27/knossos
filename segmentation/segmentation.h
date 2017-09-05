@@ -203,9 +203,6 @@ public:
     uint64_t getCurrentmergeid();
     void delete_seg_lvl(uint64_t id);
 
-    //tmp
-    void draw_mesh(uint64_t id, uint64_t objind);
-
 
 
     brush_subject brush;
