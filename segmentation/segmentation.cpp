@@ -179,11 +179,14 @@ void Segmentation::removeObject(Object & object) {
 
         }
         subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), object.index), std::end(subobject.objects));
-        //std::cout << flag_delete << std::endl;
+
+
 
         if (subobject.objects.empty()) {
             subobjects.erase(subobject.id);
         }
+        std::cout << flag_delete << std::endl;
+
     }
 
     //swap with last, so no intermediate rows need to be deleted
@@ -508,6 +511,7 @@ std::vector<std::reference_wrapper<Segmentation::Object>> Segmentation::todolist
 
 
 void Segmentation::unmergeObject(Segmentation::Object & object, Segmentation::Object & other, const Coordinate & position) {
+    std::cout << "fd" << std::endl;
     decltype(object.subobjects) tmp;
     std::set_difference(std::begin(object.subobjects), std::end(object.subobjects), std::begin(other.subobjects), std::end(other.subobjects), std::back_inserter(tmp));
     if (!tmp.empty()) {//only unmerge if subobjects remain
@@ -790,6 +794,7 @@ void Segmentation::mergeSelectedObjects() {
 }
 
 void Segmentation::unmergeSelectedObjects(const Coordinate & clickPos) {
+    std::cout << "gf" << std::endl;
     if (selectedObjectIndices.size() == 1) {
         deleteSelectedObjects();
     } else while (selectedObjectIndices.size() > 1) {
@@ -838,17 +843,18 @@ void Segmentation::remObject(uint64_t subobjectid, Segmentation::Object & sub)
 {
     std::vector<std::reference_wrapper<SubObject>>tmp;
     for (auto & elem : sub.subobjects) {
+
         auto & subobject = elem.get();
         if(subobject.id == subobjectid){
           //unselectObject(sub);
-          decltype(sub.subobjects)j;
+          decltype(sub.subobjects)new_obj;
           deleted_cell_id = subobjectid;
           //flag_delete_cell = true;
           tmp.push_back(subobject);
-          std::set_difference(std::begin(sub.subobjects), std::end(sub.subobjects), std::begin(tmp), std::end(tmp), std::back_inserter(j));
+          std::set_difference(std::begin(sub.subobjects), std::end(sub.subobjects), std::begin(tmp), std::end(tmp), std::back_inserter(new_obj));
           subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), sub.index), std::end(subobject.objects));
           subobjects.erase(subobject.id);
-          std::swap(sub.subobjects,j);
+          std::swap(sub.subobjects,new_obj);
           emit changedRow(sub.index);
           break;
 
@@ -882,7 +888,7 @@ void Segmentation::cell_delete(){
         }
         i++;
     }
-    //std::cout << "delete" << std::endl;
+
     skeleton.deleteMeshOfTree(segment.deleted_cell_id);
 
 }
@@ -977,4 +983,24 @@ uint64_t Segmentation::getCurrentmergeid(){
 void Segmentation::delete_seg_lvl(uint64_t id){
    seg_level_list.erase(id);
    emit deleteid();
+}
+
+//tmp - delete this function if found useless
+void Segmentation::draw_mesh(uint64_t id, uint64_t objind)
+{
+    auto & seg = Segmentation::singleton();
+    std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>color = seg.get_active_color();
+    auto obj = seg.objects.at(objind);
+    supervoxel info;
+    info.seed = id;
+    info.objid = obj.id;
+    info.color = color;
+    info.show = true;
+    seg.superChunkids.insert(std::make_pair(id,state->viewer->super_start_coord));
+    seg.seg_level_list.insert(std::make_pair(id,state->segmentation_level));
+    state->viewer->supervoxel_info.push_back(info);
+    state->viewer->hdf5_read(info);
+    emit seg.beforemerge();
+    seg.setCurrentmergeid(id);
+    emit seg.merge();
 }
