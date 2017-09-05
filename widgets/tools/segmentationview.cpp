@@ -389,7 +389,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     //rutuja - this is a signal for a merging data of the current active object
     QObject::connect(&Segmentation::singleton(), &Segmentation::merge,[this](){
         activeObjectModel.recreate();
-        activeObjectModel.appendRow();
+        //activeObjectModel.appendRow();
 
     });
 
@@ -397,29 +397,47 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     QObject::connect(&Segmentation::singleton(), &Segmentation::appendmerge,[this](){
         activeObjectModel.activeObjectCache.clear();
         activeObjectModel.recreate();
-        activeObjectModel.appendRow();
+        //activeObjectModel.appendRow();
 
     });
 
     // rutuja - this is a signal to delete the current active object
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteobject,[this](){
-        activeObjectModel.delete_object();
-        //std::cout << "rut" << std::endl;
+
+        //std::cout << "delete object" << std::endl;
+        while(activeObjectModel.activeObjectCache.size() > 0){
+            activeObjectModel.popRowBegin();
+            activeObjectModel.activeObjectCache.pop_back();
+            activeObjectModel.popRow();
+        }
 
     });
 
     QObject::connect(&Segmentation::singleton(), &Segmentation::changeactive,[this](){
-        activeObjectModel.activeObjectCache.clear();
+        //std::cout << "change active " << std::endl;
+        // watkinspv - just copied deleteobject code. meh
+        while(activeObjectModel.activeObjectCache.size() > 0){
+            activeObjectModel.popRowBegin();
+            activeObjectModel.activeObjectCache.pop_back();
+            activeObjectModel.popRow();
+        }
+
         auto & obj = Segmentation::singleton().objects[Segmentation::singleton().activeIndices.back()];
         activeObjectModel.fill_mergelist(obj);
-        activeObjectModel.appendRow();
 
     });
 
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteid,[this](){
-        uint64_t id = Segmentation::singleton().deleted_cell_id;
+        auto & seg = Segmentation::singleton();
+        uint64_t id = seg.deleted_cell_id;
+        activeObjectModel.popRowBegin();
         activeObjectModel.delete_subObjectID(id);
+        activeObjectModel.popRow();
 
+        if( activeObjectModel.rowCount() == 0 ) {
+            // delete the entire object in the top window
+            seg.removeObject(seg.objects.back());
+        }
     });
 
 
@@ -638,7 +656,7 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
 
             if (index.column() == 2) {
 
-                Segmentation::singleton().activeIndices.emplace_back(proxy(index.row()));             
+                Segmentation::singleton().activeIndices.emplace_back(proxy(index.row()));
 
             }
        }
@@ -796,6 +814,14 @@ void ActiveObjectModel::appendRowBegin() {
 
 }
 
+void ActiveObjectModel::popRowBegin() {
+    beginRemoveRows(QModelIndex(), rowCount()-1, rowCount()-1);
+}
+
+void ActiveObjectModel::popRow() {
+    endRemoveRows();
+}
+
 //rutuja
 int ActiveObjectModel::rowCount(const QModelIndex &) const {
    return activeObjectCache.size();
@@ -843,13 +869,16 @@ QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int
 //rutuja
 void ActiveObjectModel::fill_mergelist(const Segmentation::Object &obj){
 
-    const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
+    //const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
+    const auto elemCount = obj.subobjects.size();
     auto subobjectIt = std::begin(obj.subobjects);
     uint64_t  output;
     for (std::size_t i = 0; i < elemCount; ++i) {
+        appendRowBegin();
         output = subobjectIt->get().id;
         activeObjectCache.push_back(output);
         subobjectIt = std::next(subobjectIt);
+        appendRow();
     }
 }
 
@@ -859,10 +888,3 @@ void ActiveObjectModel::delete_subObjectID(uint64_t id){
 
 }
 
-void ActiveObjectModel::delete_object(){
-
-    //activeObjectModel.fill_mergelist();
-    //while(activeObjectCache.size() > 5){
-      //  activeObjectCache.pop_back();
-    //}
-}

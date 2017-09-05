@@ -115,10 +115,12 @@ public:
     QVariant objectGet(uint64_t id, const QModelIndex & index, int role) const;
     void fill_mergelist(const Segmentation::Object &obj);
     void delete_subObjectID(uint64_t id);
-    void delete_object();
+    //void delete_object();
     void recreate();
     void appendRow();
     void appendRowBegin();
+    void popRowBegin();
+    void popRow();
 };
 
 

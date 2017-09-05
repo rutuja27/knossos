@@ -168,22 +168,20 @@ void Segmentation::removeObject(Object & object) {
     for (auto & elem : object.subobjects) {
         auto & subobject = elem.get();
 
-        if(flag_delete){
+        if(flag_delete) {
+            deleted_cell_id = subobject.id;
             if(state->mode == 1){ // if we delete a single object it should delete the mesh in 3D window
                 cell_delete();
             }
-            //superChunkids.erase(subobject.id);
-            //seg_level_list.erase(subobject.id);
-            deleted_cell_id = subobject.id;
-            //emit deleteid();
-
         }
         subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), object.index), std::end(subobject.objects));
-        //std::cout << flag_delete << std::endl;
 
         if (subobject.objects.empty()) {
             subobjects.erase(subobject.id);
         }
+    }
+    if(flag_delete) {
+        emit deleteobject();  // deletes all the merged subobjects within this object
     }
 
     //swap with last, so no intermediate rows need to be deleted
@@ -976,5 +974,6 @@ uint64_t Segmentation::getCurrentmergeid(){
 //rutuja - function to delete the seg level from the segmentation tab
 void Segmentation::delete_seg_lvl(uint64_t id){
    seg_level_list.erase(id);
+   superChunkids.erase(id);
    emit deleteid();
 }
