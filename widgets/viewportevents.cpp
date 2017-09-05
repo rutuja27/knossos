@@ -93,32 +93,30 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                     } else {
                         seg.selectObject(objectToMergeId);//select largest object
                     }
-                }
-                if (seg.activeObjectsCount() >= 2) {//rutuja
-                    seg.mergeSelectedObjects();
-                }
-
-                //rutuja - mesh for merging task
-                if(state->hdf5_found && state->mode == 1)
-                {
-
-                        auto objIndex = seg.largestObjectContainingSubobject(subobject);
-                        std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>color = seg.get_active_color();
-                        auto obj = seg.objects.at(objIndex);
-                        supervoxel info;
-                        info.seed = soid;
-                        info.objid = obj.id;
-                        info.color = color;
-                        info.show = true;
-                        seg.superChunkids.insert(std::make_pair(soid,state->viewer->super_start_coord));
-                        seg.seg_level_list.insert(std::make_pair(soid,state->segmentation_level));
-                        state->viewer->supervoxel_info.push_back(info);
-                        state->viewer->hdf5_read(info);
-                        emit seg.beforemerge();
-                        seg.setCurrentmergeid(soid);
-                        emit seg.merge();
-
-
+                    if (seg.activeObjectsCount() >= 2) {//rutuja
+                        seg.mergeSelectedObjects();
+                    }
+                    //rutuja - mesh for merging task
+                    if(state->hdf5_found && state->mode == 1)
+                    {
+                            auto objIndex = seg.largestObjectContainingSubobject(subobject);
+                            std::tuple<uint8_t, uint8_t, uint8_t, uint8_t>color = seg.get_active_color();
+                            auto obj = seg.objects.at(objIndex);
+                            supervoxel info;
+                            info.seed = soid;
+                            info.objid = obj.id;
+                            info.color = color;
+                            info.show = true;
+                            seg.superChunkids.insert(std::make_pair(soid,state->viewer->super_start_coord));
+                            seg.seg_level_list.insert(std::make_pair(soid,state->segmentation_level));
+                            state->viewer->supervoxel_info.push_back(info);
+                            state->viewer->hdf5_read(info);
+                            emit seg.beforemerge();
+                            seg.setCurrentmergeid(soid);
+                            emit seg.merge();
+                    }
+                } else {
+                    seg.removeObject(seg.objects.back());
                 }
 
             }
