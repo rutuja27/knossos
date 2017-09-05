@@ -81,7 +81,7 @@ public:
 
 class SegmentSpin : public QSpinBox {
 public:
-    SegmentSpin(const QString & prefix, int & val, MainWindow & mainWindow) : QSpinBox(&mainWindow) {
+    SegmentSpin(const QString & prefix, /*int & val,*/ MainWindow & mainWindow) : QSpinBox(&mainWindow) {
 
         setButtonSymbols(QAbstractSpinBox::NoButtons);
         setPrefix(prefix);
@@ -293,7 +293,7 @@ void MainWindow::createToolbars() {
     xField = new CoordinateSpin("x: ", *this);
     yField = new CoordinateSpin("y: ", *this);
     zField = new CoordinateSpin("z: ", *this);
-    seglvlField = new SegmentSpin("Current Segmentation Level: ", state->segmentation_level, *this);
+    seglvlField = new SegmentSpin("Current Segmentation Level: ", /*state->segmentation_level,*/ *this);
 
     basicToolbar.addWidget(xField);
     basicToolbar.addWidget(yField);
@@ -674,7 +674,7 @@ void MainWindow::createMenus() {
 
     //rutuja - add segmentation level drop down menu on main window
 
-    QSignalMapper* signalMapper = new QSignalMapper (this) ;
+    //QSignalMapper* signalMapper = new QSignalMapper (this) ;
     auto seg_levelMenu = menuBar()->addMenu("&Segmentation Levels");
     QAction *zero = seg_levelMenu->addAction(tr("0"));
     QAction *one = seg_levelMenu->addAction(tr("1"));
@@ -691,7 +691,7 @@ void MainWindow::createMenus() {
 
     connect(seg_levelMenu, SIGNAL(triggered(QAction *)),this, SLOT(choose_seg_lvl(QAction *)), Qt::UniqueConnection);
     //connect(seg_levelMenu, SIGNAL(triggered(QAction *)), this, SLOT(seglvlField->setValue(state->segmentation_level)));
-    QWidgetAction *widgetAction = new QWidgetAction(this);
+    //QWidgetAction *widgetAction = new QWidgetAction(this);
     QLineEdit* seg_level_txtbox = new QLineEdit;
     seg_level_txtbox->setMaximumWidth(20);
     //addApplicationShortcut(*seg_levelMenu,"Current Segmentation Level", this, SLOT(state->segmentation_level));

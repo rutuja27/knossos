@@ -1573,6 +1573,8 @@ int Viewer::hdf5_read(supervoxel& x)
            free(data_faces);
        }
     }
+
+    return (status >= 0);
 }
 
 void Viewer::setSuperChunk(Coordinate pos)

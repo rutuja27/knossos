@@ -97,9 +97,9 @@ public:
 };
 
 //rutuja
-class ActiveObjectModel: public SegmentationObjectModel {
+class ActiveObjectModel: public QAbstractListModel {
     Q_OBJECT
-    //friend class SegmentationView;
+    friend class SegmentationView;
 protected:
     const std::vector<QString> header = {"ID", "x", "y", "z", "segmentation level"};
     const std::size_t MAX_SHOWN_SUBOBJECTS = 20;

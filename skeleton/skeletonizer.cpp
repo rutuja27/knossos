@@ -1087,7 +1087,7 @@ boost::optional<nodeListElement &> Skeletonizer::addNode(boost::optional<std::ui
     tempTree->nodes.emplace_back(nodeID.get(), radius, position, inMag, VPtype, time.get(), properties, *tempTree);
     auto & tempNode = tempTree->nodes.back();
 
-    auto & mode = Session::singleton().annotationMode;
+    //auto & mode = Session::singleton().annotationMode;
 
 
     tempNode.synapse_check = syn_chk;

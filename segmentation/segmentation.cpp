@@ -179,7 +179,7 @@ void Segmentation::removeObject(Object & object) {
 
         }
         subobject.objects.erase(std::remove(std::begin(subobject.objects), std::end(subobject.objects), object.index), std::end(subobject.objects));
-        std::cout << flag_delete << std::endl;
+        //std::cout << flag_delete << std::endl;
 
         if (subobject.objects.empty()) {
             subobjects.erase(subobject.id);
@@ -850,7 +850,7 @@ void Segmentation::remObject(uint64_t subobjectid, Segmentation::Object & sub)
           subobjects.erase(subobject.id);
           std::swap(sub.subobjects,j);
           emit changedRow(sub.index);
-
+          break;
 
         }
 
@@ -882,7 +882,7 @@ void Segmentation::cell_delete(){
         }
         i++;
     }
-    std::cout << "delete" << std::endl;
+    //std::cout << "delete" << std::endl;
     skeleton.deleteMeshOfTree(segment.deleted_cell_id);
 
 }

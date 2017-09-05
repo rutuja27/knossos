@@ -404,7 +404,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     // rutuja - this is a signal to delete the current active object
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteobject,[this](){
         activeObjectModel.delete_object();
-        std::cout << "rut" << std::endl;
+        //std::cout << "rut" << std::endl;
 
     });
 
@@ -497,7 +497,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     QObject::connect(&Segmentation::singleton(), &Segmentation::renderOnlySelectedObjsChanged, &showOnlySelectedChck, &QCheckBox::setChecked);
     QObject::connect(&Segmentation::singleton(), &Segmentation::categoriesChanged, &categoryModel, &CategoryModel::recreate);
     QObject::connect(&Segmentation::singleton(), &Segmentation::hoveredSubObjectChanged, [this](const uint64_t subobject_id, const std::vector<uint64_t> & overlapObjIndices) {
-        auto text = tr("Hovered raw segmentation ID: %1").arg(subobject_id);
+        auto text = tr("Hovered raw segmentation ID:\n%1").arg(subobject_id);
         if (overlapObjIndices.empty() == false) {
              text += " (part of: ";
             for (const uint64_t index : overlapObjIndices) {

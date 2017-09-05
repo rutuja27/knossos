@@ -50,6 +50,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
     const auto subobjectIds = readVoxels(brushCenter, seg.brush.value());
     for (const auto subobjectPair : subobjectIds) {
 
+
         if (seg.activeObjectsCount() == 1) {//rutuja
             const auto soid = subobjectPair.first;
             const auto pos = subobjectPair.second;
@@ -58,12 +59,13 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
 
             //rutuja - get superchunkid
             state->viewer->setSuperChunk(pos);
-            std::cout << state->viewer->superChunkId.x << " " << state->viewer->superChunkId.y << " "
-                       << state->viewer->superChunkId.z << std::endl;
+            //std::cout << state->viewer->superChunkId.x << " " << state->viewer->superChunkId.y << " "
+            //           << state->viewer->superChunkId.z << std::endl;
             state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
-            std::cout << state->viewer->super_start_coord.x << " " << state->viewer->super_start_coord.y << " "
-                       << state->viewer->super_start_coord.z << std::endl;
+            //std::cout << state->viewer->super_start_coord.x << " " << state->viewer->super_start_coord.y << " "
+            //           << state->viewer->super_start_coord.z << std::endl;
             // if clicked object is currently selected, an unmerge is requested
+            /*
             if (seg.isSelected(subobject)) {
                 if (event->modifiers().testFlag(Qt::ShiftModifier)) {
                     if (event->modifiers().testFlag(Qt::ControlModifier)) {
@@ -81,7 +83,10 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                     }
                 }
             } else { // object is not selected, so user wants to merge
+            */
 
+            // do a merge if object is not currently selected
+            if (!seg.isSelected(subobject)) {
                 if (!event->modifiers().testFlag(Qt::ShiftModifier)) {
                     if (event->modifiers().testFlag(Qt::ControlModifier)) {
                         seg.selectObjectFromSubObject(subobject, pos);

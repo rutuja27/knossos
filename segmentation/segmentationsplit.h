@@ -41,7 +41,7 @@ public:
         angular, round
     };
 
-    int radius = 100;
+    int radius = 1;
     bool inverse = false;
     mode_t mode = mode_t::two_dim;
     view_t view = view_t::xy;
