@@ -708,7 +708,7 @@ void Segmentation::startJobMode() {
 
 void Segmentation::deleteSelectedObjects() {
 
-    //const auto blockState = blockSignals(true); // uncommenting this gives segfault
+    const auto blockState = blockSignals(true); // uncommenting this gives segfault
 
     while (!activeIndices.empty()) { // changed from selectedObjectindices to activeIndices-rutuja
 
@@ -729,8 +729,8 @@ void Segmentation::deleteSelectedObjects() {
       activeIndices.emplace_back(obj.index);
     }
 
-    //blockSignals(blockState);
-    //emit resetData();
+    blockSignals(blockState);
+    emit resetData();
 }
 
 void Segmentation::mergeSelectedObjects() {

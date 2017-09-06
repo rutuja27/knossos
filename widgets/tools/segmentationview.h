@@ -116,6 +116,7 @@ public:
     void fill_mergelist(const Segmentation::Object &obj);
     void delete_subObjectID(uint64_t id);
     //void delete_object();
+    void clear_rows();
     void recreate();
     void appendRow();
     void appendRowBegin();

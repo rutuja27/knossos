@@ -404,27 +404,18 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
     // rutuja - this is a signal to delete the current active object
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteobject,[this](){
 
-        //std::cout << "delete object" << std::endl;
-        while(activeObjectModel.activeObjectCache.size() > 0){
-            activeObjectModel.popRowBegin();
-            activeObjectModel.activeObjectCache.pop_back();
-            activeObjectModel.popRow();
-        }
+        activeObjectModel.clear_rows();
 
     });
 
     QObject::connect(&Segmentation::singleton(), &Segmentation::changeactive,[this](){
-        //std::cout << "change active " << std::endl;
-        // watkinspv - just copied deleteobject code. meh
-        while(activeObjectModel.activeObjectCache.size() > 0){
-            activeObjectModel.popRowBegin();
-            activeObjectModel.activeObjectCache.pop_back();
-            activeObjectModel.popRow();
+
+        activeObjectModel.clear_rows();
+
+        if( Segmentation::singleton().activeIndices.size() > 0 ) {
+            auto & obj = Segmentation::singleton().objects[Segmentation::singleton().activeIndices.back()];
+            activeObjectModel.fill_mergelist(obj);
         }
-
-        auto & obj = Segmentation::singleton().objects[Segmentation::singleton().activeIndices.back()];
-        activeObjectModel.fill_mergelist(obj);
-
     });
 
     QObject::connect(&Segmentation::singleton(), &Segmentation::deleteid,[this](){
@@ -641,6 +632,7 @@ SegmentationView::SegmentationView(QWidget * const parent) : QWidget(parent), ca
 
 template<typename Func>
 void commitSelection(const QItemSelection & selected, const QItemSelection & deselected, Func proxy) {
+    //std::cout << "commit selection " << std::endl;
 
     //rutuja - to disable deselecting of objects from the viewer that have already been selected.
     //Adding the ability to selectively
@@ -685,12 +677,16 @@ void commitSelection(const QItemSelection & selected, const QItemSelection & des
         }
 
       }
-      seg.activeIndices.emplace_back(temp.front());
+
+      if( temp.size() > 0 ) {
+          seg.activeIndices.emplace_back(temp.front());
+      }
     }
 
 
     seg.active_index_change = true;
 
+    //std::cout << "in commit selection active indices len " << seg.activeIndices.size() << std::endl;
 
 
     //old code - commented by rutuja
@@ -866,8 +862,18 @@ QVariant ActiveObjectModel::objectGet(uint64_t id,const QModelIndex & index, int
    return QVariant();//return invalid QVariant
 }
 
+void ActiveObjectModel::clear_rows() {
+    //std::cout << "delete object" << std::endl;
+    while(activeObjectCache.size() > 0){
+        popRowBegin();
+        activeObjectCache.pop_back();
+        popRow();
+    }
+}
+
 //rutuja
 void ActiveObjectModel::fill_mergelist(const Segmentation::Object &obj){
+    //std::cout << "fill mergelist" << std::endl;
 
     //const auto elemCount = std::min(MAX_SHOWN_SUBOBJECTS, obj.subobjects.size());
     const auto elemCount = obj.subobjects.size();

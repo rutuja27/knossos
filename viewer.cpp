@@ -422,7 +422,9 @@ void Viewer::ocSliceExtract(char *datacube, Coordinate cubePosInAbsPx, char *sli
                         //object of the selected current subobjectid
                         const auto & obj = seg.objects.at(id);
                         //curent active object
-                        const auto & objid = seg.activeIndices.back()+1;
+                        const auto & objid = (seg.activeIndices.size() > 0 ?
+                                              seg.objects.at(seg.activeIndices.back()).id : -1);
+                        //const auto & objid = seg.activeIndices.back()+1;
 
                         if(!obj.on_off){
                             reinterpret_cast<uint8_t*>(slice)[0] = 0;
