@@ -554,7 +554,8 @@ void Segmentation::selectObject(const uint64_t & objectIndex) {
 }
 
 std::size_t Segmentation::selectedObjectsCount() const {
-    return selectedObjectIndices.size();
+    // watkinspv
+    return (activeIndices.size() > 0 ? activeIndices.size() : selectedObjectIndices.size());
 }
 
 void Segmentation::mergelistSave(QIODevice & file) const {
@@ -800,7 +801,9 @@ void Segmentation::unmergeSelectedObjects(const Coordinate & clickPos) {
 }
 
 void Segmentation::jumpToSelectedObject() {
-    if (!selectedObjectIndices.empty()) {
+    if(!activeIndices.empty()) {
+        jumpToObject(objects[activeIndices.front()]);
+    } else if (!selectedObjectIndices.empty()) {
         jumpToObject(objects[selectedObjectIndices.front()]);
     }
 }

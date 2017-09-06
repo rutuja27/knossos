@@ -51,8 +51,40 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
     const auto subobjectIds = readVoxels(brushCenter, seg.brush.value());
     for (const auto subobjectPair : subobjectIds) {
 
+        if (event->modifiers().testFlag(Qt::ShiftModifier)) {
+            // mode for deleting subjobects (unmerge and delete subobject)
+            //std::cout << "delete subobject " << std::endl;
+            auto & segmentation = Segmentation::singleton();
 
-        if (seg.activeObjectsCount() == 1) {//rutuja
+            //const auto clickPos = getCoordinateFromOrthogonalClick(event->x(), event->y(), *this);
+            //const auto subobjectId = readVoxel(clickPos);
+            const auto subobjectId = subobjectPair.first;
+            const auto clickPos = subobjectPair.second;
+
+            //rutuja - to delete a subobject from object
+            if (subobjectId != 0 && event->modifiers().testFlag(Qt::ShiftModifier)) {// delete a subobject
+
+                auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
+                auto objIndex = segmentation.largestObjectContainingSubobject(subobject);
+                if (segmentation.isSelected(objIndex)) {// unselect if selected
+
+                    auto & object = segmentation.objects.at(objIndex);
+                    segmentation.unselectObject(object);
+                    segmentation.remObject(subobjectId,object);
+                    segmentation.selectObject(object);
+
+                    if(state->hdf5_found && state->mode == 1){
+                        segmentation.cell_delete();
+                        segmentation.delete_seg_lvl(subobjectId);
+                    }
+                } else {
+                    // watkinspv - if the object was not selected, remove the object that was created
+                    segmentation.removeObject(segmentation.objects.back());
+                }
+            }
+        } else if (seg.activeObjectsCount() == 1) {//rutuja
+            //std::cout << "merge subobject " << std::endl;
+            // mode for merging subjobects (creates a new object and then merges subobject into current object)
             const auto soid = subobjectPair.first;
             const auto pos = subobjectPair.second;
             auto & subobject = seg.subobjectFromId(soid, pos);
@@ -60,11 +92,13 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
 
             //rutuja - get superchunkid
             state->viewer->setSuperChunk(pos);
+            state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
             //std::cout << state->viewer->superChunkId.x << " " << state->viewer->superChunkId.y << " "
             //           << state->viewer->superChunkId.z << std::endl;
-            state->viewer->setSuperChunkCoordinate(state->viewer->superChunkId);
             //std::cout << state->viewer->super_start_coord.x << " " << state->viewer->super_start_coord.y << " "
             //           << state->viewer->super_start_coord.z << std::endl;
+
+            // START OLD unmerge code
             // if clicked object is currently selected, an unmerge is requested
             /*
             if (seg.isSelected(subobject)) {
@@ -85,6 +119,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
                 }
             } else { // object is not selected, so user wants to merge
             */
+            // END OLD unmerge code
 
             // do a merge if object is not currently selected
             if (!seg.isSelected(subobject)) {
@@ -125,7 +160,7 @@ void merging(const QMouseEvent *event, ViewportOrtho & vp) {
 
         }
 
-    }
+    } // for subobject pairs
 }
 
 void segmentation_brush_work(const QMouseEvent *event, ViewportOrtho & vp) {
@@ -206,14 +241,14 @@ void ViewportOrtho::handleMouseButtonMiddle(const QMouseEvent *event) {
 }
 
 void ViewportOrtho::handleMouseButtonRight(const QMouseEvent *event) {
+    if (!mouseEventAtValidDatasetPosition(event)) { //don’t place nodes outside movement area
+        return;
+    }
+
     const auto & annotationMode = Session::singleton().annotationMode;
     if (annotationMode.testFlag(AnnotationMode::Brush)) {
         Segmentation::singleton().brush.setInverse(event->modifiers().testFlag(Qt::ShiftModifier));
         segmentation_brush_work(event, *this);
-        return;
-    }
-
-    if (!mouseEventAtValidDatasetPosition(event)) { //don’t place nodes outside movement area
         return;
     }
 
@@ -511,35 +546,6 @@ void ViewportOrtho::handleMouseReleaseRight(const QMouseEvent *event) {
     if (Session::singleton().annotationMode.testFlag(AnnotationMode::Brush)) {
         if (event->pos() != mouseDown) {//merge took already place on mouse down
             segmentation_brush_work(event, *this);
-        } else {
-            //std::cout << "delete subobject " << std::endl;
-            auto & segmentation = Segmentation::singleton();
-            if (Session::singleton().annotationMode.testFlag(AnnotationMode::ObjectSelection) && mouseEventAtValidDatasetPosition(event)) { // in task mode the object should not be switched
-                const auto clickPos = getCoordinateFromOrthogonalClick(event->x(), event->y(), *this);
-                const auto subobjectId = readVoxel(clickPos);
-
-                //rutuja - to delete a subobject from object
-                if (subobjectId != 0 && event->modifiers().testFlag(Qt::ShiftModifier)) {// delete a subobject
-
-                    auto & subobject = segmentation.subobjectFromId(subobjectId, clickPos);
-                    auto objIndex = segmentation.largestObjectContainingSubobject(subobject);
-                    if (segmentation.isSelected(objIndex)) {// unselect if selected
-
-                        auto & object = segmentation.objects.at(objIndex);
-                        segmentation.unselectObject(object);
-                        segmentation.remObject(subobjectId,object);
-                        segmentation.selectObject(object);
-
-                        if(state->hdf5_found && state->mode == 1){
-                            segmentation.cell_delete();
-                            segmentation.delete_seg_lvl(subobjectId);
-                        }
-                    } else {
-                        // watkinspv - if the object was not selected, remove the object that was created
-                        segmentation.removeObject(segmentation.objects.back());
-                    }
-                }
-            }
         }
     }
     ViewportBase::handleMouseReleaseRight(event);
