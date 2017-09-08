@@ -198,7 +198,7 @@ void TreeModel::recreate() {
     beginResetModel();
     cache.clear();
     for (auto && tree : state->skeletonState->trees) {
-        if ((mode == SynapseDisplayModes::Hide && tree.isSynapticCleft == false)
+        if ((mode == SynapseDisplayModes::Hide && tree.isSynapticCleft == false && tree.mesh == nullptr)
                 || (mode == SynapseDisplayModes::Show)
                 || (mode == SynapseDisplayModes::ShowOnly && tree.isSynapticCleft)) {
             cache.emplace_back(tree);

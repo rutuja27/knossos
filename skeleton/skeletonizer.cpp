@@ -295,7 +295,7 @@ void Skeletonizer::saveXmlSkeleton(QIODevice & file) const {
             xml.writeAttribute("inVp", QString::number(node.createdInVp));
             xml.writeAttribute("inMag", QString::number(node.createdInMag));
             xml.writeAttribute("time", QString::number(node.timestamp));
-            std::cout << node.synapse_check << std::endl;
+            //std::cout << node.synapse_check << std::endl;
             xml.writeAttribute("synapse_check", QString::number(node.synapse_check)); //rutuja
             for (auto propertyIt = node.properties.constBegin(); propertyIt != node.properties.constEnd(); ++propertyIt) {
                 xml.writeAttribute(propertyIt.key(), propertyIt.value().toString());
@@ -516,7 +516,7 @@ std::unordered_map<decltype(treeListElement::treeID), std::reference_wrapper<tre
                 } else if (knownElements.find(xml.name().toString()) == std::end(knownElements)) {// known but unused legacy elements are not reported
                     skippedElements.insert(xml.name().toString());
                 } else if(xml.name() == "synapse_check") {
-                    std::cout << "f" << std::endl;
+                    //std::cout << "f" << std::endl;
                 }
                 xml.skipCurrentElement();
             }
@@ -639,7 +639,7 @@ std::unordered_map<decltype(treeListElement::treeID), std::reference_wrapper<tre
                                     ms = {value.toULongLong()};
                                 }else if (name == "synapse_check"){
                                     syn_chk = {value.toInt()}; //rutuja added field syn_chk
-                                    std::cout << syn_chk << std::endl;
+                                    //std::cout << syn_chk << std::endl;
                                 } else if (name != "comment") { // comments are added later in the comments section
                                     const auto property = name.toString();
                                     properties.insert(property, value.toString());
@@ -652,7 +652,7 @@ std::unordered_map<decltype(treeListElement::treeID), std::reference_wrapper<tre
                                 auto & noderef = addNode(boost::none, radius, treeID, currentCoordinate, inVP, inMag, ms, false, syn_chk, properties).get(); //rutuja added field "syn_chk"
                                 nodeMap.emplace(std::piecewise_construct, std::forward_as_tuple(nodeID.get()), std::forward_as_tuple(noderef));
                             } else {
-                                std::cout << syn_chk << std::endl;
+                                //std::cout << syn_chk << std::endl;
                                 addNode(nodeID, radius, treeID, currentCoordinate, inVP, inMag, ms, false, syn_chk, properties);//rutuja added field "syn_chk"
                             }
                         } else {

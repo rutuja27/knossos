@@ -729,6 +729,9 @@ void SegmentationView::selectionChanged(const QItemSelection & selected, const Q
         emit Segmentation::singleton().beforemerge();
         emit Segmentation::singleton().changeactive();
         updateTouchedObjSelection();
+
+        floatCoordinate deltaCoord{- 1.f, - 1.f, - 1.f};
+        state->viewer->userMove(deltaCoord, USERMOVE_NEUTRAL);
     }
 }
 
